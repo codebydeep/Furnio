@@ -32,17 +32,14 @@ import {
 } from '../validators/masterValidators.js'
 
 const router = Router()
-
-
 router.use(authenticate)
 
-
-router.post  ('/',               authorize(...CAN_MANAGE_MASTER), validate(createContactSchema), createContact)
-router.get   ('/',               authorize(...CAN_MANAGE_MASTER), getAllContacts)
-router.get   ('/:id',            authorize(...CAN_MANAGE_MASTER), getContactById)
-router.patch ('/:id',            authorize(...CAN_MANAGE_MASTER), validate(updateContactSchema), updateContact)
-router.patch ('/:id/archive',    authorize(...CAN_MANAGE_USERS),  archiveContact)    // ADMIN only
-router.patch ('/:id/unarchive',  authorize(...CAN_MANAGE_USERS),  unarchiveContact)  // ADMIN only
+router.post  ('/',              authorize(...CAN_MANAGE_MASTER), validate(createContactSchema), createContact)
+router.get   ('/',              authorize(...CAN_MANAGE_MASTER), getAllContacts)
+router.get   ('/:id',           authorize(...CAN_MANAGE_MASTER), getContactById)
+router.patch ('/:id',           authorize(...CAN_MANAGE_MASTER), validate(updateContactSchema), updateContact)
+router.patch ('/:id/archive',   authorize(...CAN_MANAGE_USERS),  archiveContact)
+router.patch ('/:id/unarchive', authorize(...CAN_MANAGE_USERS),  unarchiveContact)
 
 export const contactRouter = router
 
@@ -57,7 +54,6 @@ productRouter.patch ('/:id/archive',   authorize(...CAN_MANAGE_USERS),  archiveP
 productRouter.patch ('/:id/unarchive', authorize(...CAN_MANAGE_USERS),  unarchiveProduct)
 
 export { productRouter }
-
 
 const accountRouter = Router()
 accountRouter.use(authenticate)
@@ -78,6 +74,6 @@ journalRouter.post  ('/',    authorize(...CAN_MANAGE_MASTER), validate(createJou
 journalRouter.get   ('/',    authorize(...CAN_MANAGE_MASTER), getAllJournals)
 journalRouter.get   ('/:id', authorize(...CAN_MANAGE_MASTER), getJournalById)
 journalRouter.patch ('/:id', authorize(...CAN_MANAGE_MASTER), validate(updateJournalSchema), updateJournal)
-journalRouter.delete('/:id', authorize(...CAN_MANAGE_USERS),  deleteJournal)  // ADMIN only
+journalRouter.delete('/:id', authorize(...CAN_MANAGE_USERS),  deleteJournal)
 
 export { journalRouter }

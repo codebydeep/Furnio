@@ -21,9 +21,9 @@ export default function LoginPage() {
 
   function redirectByRole(role: string) {
     if (from) { navigate(from, { replace: true }); return }
-    if (role === 'admin')      navigate('/dashboard/admin',      { replace: true })
-    else if (role === 'accountant') navigate('/dashboard/accountant', { replace: true })
-    else                       navigate('/dashboard/contact',    { replace: true })
+    if (role === 'ADMIN')           navigate('/dashboard/admin',      { replace: true })
+    else if (role === 'ACCOUNTANT') navigate('/dashboard/accountant', { replace: true })
+    else                            navigate('/dashboard/contact',    { replace: true })
   }
 
   async function handleSubmit(e: React.FormEvent) {

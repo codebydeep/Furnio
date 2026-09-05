@@ -1,5 +1,4 @@
-cls
-git statusimport 'dotenv/config'
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import prisma from './db/prisma.js'
@@ -9,17 +8,12 @@ import { contactRouter, productRouter, accountRouter, journalRouter } from './ro
 const app  = express()
 const port = process.env.PORT || 3000
 
-/* ── CORS ──────────────────────────────────────────────────────
-   Allow requests from the Vite dev server and production origin.
-   Add more origins to the array if needed.
-─────────────────────────────────────────────────────────────── */
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5174')
-  .split(',')
-  .map(o => o.trim())
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map(o => o.trim())
+  : ['http://localhost:5173']
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow server-to-server calls (no origin) and listed origins
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
     cb(new Error(`CORS: origin ${origin} not allowed`))
   },
@@ -30,29 +24,27 @@ app.use(cors({
 
 app.use(express.json())
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get('/', (_req, res) => res.json({ status: 'ok', message: 'DealFlow API is running.' }))
 
-// User routes
-app.use('/api/users', userRoutes)
+app.use('/api/auth',     authRoutes)
+app.use('/api/contacts', contactRouter)
+app.use('/api/products', productRouter)
+app.use('/api/accounts', accountRouter)
+app.use('/api/journals', journalRouter)
 
-/* ── 404 ────────────────────────────────────────────────────── */
 app.use((_req, res) => res.status(404).json({ message: 'Route not found.' }))
 
-/* ── Global error handler ───────────────────────────────────── */
 app.use((err, _req, res, _next) => {
   console.error('[unhandled]', err)
   res.status(500).json({ message: err.message || 'Internal server error.' })
 })
 
-/* ── Start ──────────────────────────────────────────────────── */
 prisma.$connect()
   .then(() => {
-    console.log('✓ Database connected')
-    app.listen(port, () => console.log(`✓ Server listening on port ${port}`))
+    console.log('Database connected')
+    app.listen(port, () => console.log(`Server listening on port ${port}`))
   })
   .catch(err => {
-    console.error('✗ Failed to connect to database:', err)
+    console.error('Failed to connect to database:', err)
     process.exit(1)
   })

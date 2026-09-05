@@ -36,7 +36,7 @@ function signToken(user) {
   )
 }
 
-/* ── REGISTER ────────────────────────────────────────────────── */
+
 export async function registerUser(req, res) {
   try {
     const { name, email, password, role, image } = req.body
@@ -50,7 +50,7 @@ export async function registerUser(req, res) {
       return res.status(409).json({ message: 'A user with that email already exists.' })
     }
 
-    // Validate role — only accept known values; default to accountant
+    
     const allowedRoles = ['admin', 'accountant', 'contact']
     const assignedRole = allowedRoles.includes(role) ? role : 'accountant'
 

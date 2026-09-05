@@ -4,7 +4,6 @@ export async function createAccount(req, res) {
   try {
     const { name, type } = req.body
 
-    // Prevent duplicate account name of same type
     const existing = await prisma.account.findFirst({ where: { name, type } })
     if (existing) {
       return res.status(409).json({ message: `An account named "${name}" of type ${type} already exists.` })
@@ -55,10 +54,6 @@ export async function getAccountById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/accounts/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function updateAccount(req, res) {
   try {
     const { id } = req.params
@@ -83,9 +78,6 @@ export async function updateAccount(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/accounts/:id/archive  (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function archiveAccount(req, res) {
   try {
     const { id } = req.params
@@ -110,9 +102,6 @@ export async function archiveAccount(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/accounts/:id/unarchive  (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function unarchiveAccount(req, res) {
   try {
     const { id } = req.params

@@ -16,18 +16,15 @@ import { registerSchema, loginSchema, changeRoleSchema, validate } from '../vali
 
 const router = Router()
 
-// ---------- Public ----------
 router.post('/register', validate(registerSchema), register)
 router.post('/login',    validate(loginSchema),    login)
 
-// ---------- Any authenticated user ----------
 router.get('/me', authenticate, me)
 
-// ---------- ADMIN only — user management ----------
-router.get   ('/users',            authenticate, authorize(...CAN_MANAGE_USERS), getAllUsers)
-router.get   ('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), getUserById)
-router.patch ('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), updateUser)
-router.patch ('/users/:id/role',   authenticate, authorize(...CAN_MANAGE_USERS), validate(changeRoleSchema), changeRole)
-router.delete('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), deleteUser)
+router.get   ('/users',          authenticate, authorize(...CAN_MANAGE_USERS), getAllUsers)
+router.get   ('/users/:id',      authenticate, authorize(...CAN_MANAGE_USERS), getUserById)
+router.patch ('/users/:id',      authenticate, authorize(...CAN_MANAGE_USERS), updateUser)
+router.patch ('/users/:id/role', authenticate, authorize(...CAN_MANAGE_USERS), validate(changeRoleSchema), changeRole)
+router.delete('/users/:id',      authenticate, authorize(...CAN_MANAGE_USERS), deleteUser)
 
 export default router

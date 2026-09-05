@@ -1,20 +1,14 @@
 import prisma from '../db/prisma.js'
 
-// ---------------------------------------------------------------------------
-// POST /api/journals
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function createJournal(req, res) {
   try {
     const { name, type, defaultAccountId } = req.body
 
-    // Prevent duplicate journal name + type
     const existing = await prisma.journal.findFirst({ where: { name, type } })
     if (existing) {
       return res.status(409).json({ message: `A journal named "${name}" of type ${type} already exists.` })
     }
 
-    // Validate defaultAccountId if provided
     if (defaultAccountId) {
       const account = await prisma.account.findUnique({ where: { id: defaultAccountId } })
       if (!account) {
@@ -26,11 +20,7 @@ export async function createJournal(req, res) {
     }
 
     const journal = await prisma.journal.create({
-      data: {
-        name,
-        type,
-        defaultAccountId: defaultAccountId ?? null,
-      },
+      data: { name, type, defaultAccountId: defaultAccountId ?? null },
       include: { defaultAccount: true },
     })
 
@@ -41,11 +31,6 @@ export async function createJournal(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/journals
-// ADMIN, ACCOUNTANT
-// Query: ?type=SALES|PURCHASE|BANK|CASH
-// ---------------------------------------------------------------------------
 export async function getAllJournals(req, res) {
   try {
     const { type } = req.query
@@ -66,10 +51,6 @@ export async function getAllJournals(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/journals/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function getJournalById(req, res) {
   try {
     const journal = await prisma.journal.findUnique({
@@ -88,10 +69,6 @@ export async function getJournalById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/journals/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function updateJournal(req, res) {
   try {
     const { id } = req.params
@@ -102,7 +79,6 @@ export async function updateJournal(req, res) {
       return res.status(404).json({ message: 'Journal not found.' })
     }
 
-    // Validate new defaultAccountId if provided
     if (defaultAccountId) {
       const account = await prisma.account.findUnique({ where: { id: defaultAccountId } })
       if (!account) {
@@ -131,10 +107,6 @@ export async function updateJournal(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// DELETE /api/journals/:id  (ADMIN only)
-// Only allowed if journal has no entries
-// ---------------------------------------------------------------------------
 export async function deleteJournal(req, res) {
   try {
     const { id } = req.params

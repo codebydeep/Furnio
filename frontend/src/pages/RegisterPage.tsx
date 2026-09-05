@@ -4,28 +4,27 @@ import { Eye, EyeOff, BookOpen, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuthStore, type UserRole } from '@/store/useAuthStore'
 
 const ROLES: { value: UserRole; label: string; desc: string }[] = [
-  { value: 'admin',      label: 'Admin',           desc: 'Full access — create, modify, archive, report' },
-  { value: 'accountant', label: 'Invoicing User',  desc: 'Create master data, record transactions, view reports' },
-  { value: 'contact',    label: 'Contact',         desc: 'View own invoices/bills and make payments' },
+  { value: 'ADMIN',      label: 'Admin',          desc: 'Full access — create, modify, archive, report' },
+  { value: 'ACCOUNTANT', label: 'Invoicing User', desc: 'Create master data, record transactions, view reports' },
+  { value: 'CONTACT',    label: 'Contact',        desc: 'View own invoices/bills and make payments' },
 ]
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, user, loading, error, clearError } = useAuthStore()
 
-  const [name,    setName]    = useState('')
   const [email,   setEmail]   = useState('')
   const [pwd,     setPwd]     = useState('')
   const [confirm, setConfirm] = useState('')
-  const [role,    setRole]    = useState<UserRole>('accountant')
+  const [role,    setRole]    = useState<UserRole>('ACCOUNTANT')
   const [showPwd, setShowPwd] = useState(false)
   const [localErr,setLocalErr]= useState('')
 
   useEffect(() => {
     if (user) {
-      if (user.role === 'admin')      navigate('/dashboard/admin',      { replace: true })
-      else if (user.role === 'accountant') navigate('/dashboard/accountant', { replace: true })
-      else                            navigate('/dashboard/contact',    { replace: true })
+      if (user.role === 'ADMIN')           navigate('/dashboard/admin',      { replace: true })
+      else if (user.role === 'ACCOUNTANT') navigate('/dashboard/accountant', { replace: true })
+      else                                 navigate('/dashboard/contact',    { replace: true })
     }
   }, [user, navigate])
 
@@ -35,7 +34,7 @@ export default function RegisterPage() {
     clearError()
     if (pwd !== confirm) { setLocalErr('Passwords do not match'); return }
     if (pwd.length < 8)  { setLocalErr('Password must be at least 8 characters'); return }
-    await register(name, email, pwd, role)
+    await register(email, pwd, role)
   }
 
   const displayError = localErr || error
@@ -64,15 +63,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Two-col grid on wide card */}
           <div className="auth-two-col">
-            <div className="auth-field">
-              <label className="auth-label" htmlFor="name">Full Name</label>
-              <input id="name" type="text" className="auth-input"
-                placeholder="Nimesh Pathak"
-                value={name} onChange={e => setName(e.target.value)}
-                required autoComplete="name" />
-            </div>
-
-            <div className="auth-field">
+          <div className="auth-field">
               <label className="auth-label" htmlFor="reg-email">Email</label>
               <input id="reg-email" type="email" className="auth-input"
                 placeholder="you@urbanfurniture.com"
