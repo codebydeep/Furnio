@@ -2,7 +2,8 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import prisma from './db/prisma.js'
-import userRoutes from './routes/userRoutes.js'
+import authRoutes from './routes/authRoutes.js'
+import { contactRouter, productRouter, accountRouter, journalRouter } from './routes/masterRoutes.js'
 
 const app  = express()
 const port = process.env.PORT || 3000
@@ -28,10 +29,11 @@ app.use(cors({
 
 app.use(express.json())
 
-/* ── Health ────────────────────────────────────────────────── */
-app.get('/', (_req, res) => res.json({ status: 'ok', service: 'UrbanBooks API' }))
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
 
-/* ── Routes ────────────────────────────────────────────────── */
+// User routes
 app.use('/api/users', userRoutes)
 
 /* ── 404 ────────────────────────────────────────────────────── */
