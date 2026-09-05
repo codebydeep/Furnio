@@ -1,19 +1,20 @@
 import 'dotenv/config'
 import express from 'express'
 import prisma from './db/prisma.js'
-import userRoutes from './routes/userRoutes.js'
+import authRoutes from './routes/authRoutes.js'
 
 const app = express()
 const port = process.env.PORT || 3000
 
 app.use(express.json())
 
+// Health check
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.json({ status: 'ok', message: 'DealFlow API is running.' })
 })
 
-// User routes
-app.use('/api/users', userRoutes)
+// Routes
+app.use('/api/auth', authRoutes)
 
 // Verify DB connection then start server
 prisma.$connect()

@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// schema.prisma
+// Accounting system — Node.js + Express + Prisma + PostgreSQL
 
 generator client {
   provider = "prisma-client"
@@ -8,18 +8,261 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
-  
 
-  //user model
+// ---------- Auth / Users ----------
 
- model User {
+enum Role {
+  ADMIN        // Business Owner
+  ACCOUNTANT   // Invoicing User
+  CONTACT      // Customer / Vendor self-service
+}
+
+model User {
   id        String   @id @default(uuid())
-  name      String?
+  loginId   String   @unique          // 6–12 chars, unique login identifier
   email     String   @unique
-  image     String?
-  password  String
+  password  String   // bcrypt hash
+  role      Role
+  contactId String?  @unique          // set only when role = CONTACT
+  contact   Contact? @relation(fields: [contactId], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+// ---------- Master Data ----------
+
+enum ContactType {
+  CUSTOMER
+  VENDOR
+  BOTH
+}
+
+model Contact {
+  id             String          @id @default(uuid())
+  name           String
+  type           ContactType
+  email          String?
+  mobile         String?
+  city           String?
+  state          String?
+  pincode        String?
+  profileImage   String?
+  archived       Boolean         @default(false)
+  user           User?
+  purchaseOrders PurchaseOrder[]
+  salesOrders    SalesOrder[]
+  createdAt      DateTime        @default(now())
+}
+
+enum ProductType {
+  GOODS
+  SERVICE
+  COMBO
+}
+
+model Product {
+  id         String      @id @default(uuid())
+  name       String
+  type       ProductType
+  salesPrice Decimal     @db.Decimal(12, 2)
+  costPrice  Decimal     @db.Decimal(12, 2)
+  category   String?
+  archived   Boolean     @default(false)
+  poItems    POItem[]
+  soItems    SOItem[]
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  INCOME
+  EXPENSE
+  CAPITAL
+}
+
+model Account {
+  id           String        @id @default(uuid())
+  name         String
+  type         AccountType
+  archived     Boolean       @default(false)
+  journalItems JournalItem[]
+  budgets      Budget[]
+  journals     Journal[]
+}
+
+enum JournalType {
+  SALES
+  PURCHASE
+  BANK
+  CASH
+}
+
+model Journal {
+  id               String         @id @default(uuid())
+  name             String
+  type             JournalType
+  defaultAccountId String?
+  defaultAccount   Account?       @relation(fields: [defaultAccountId], references: [id])
+  entries          JournalEntry[]
+}
+
+// ---------- Double-entry core ----------
+
+model JournalEntry {
+  id        String        @id @default(uuid())
+  journalId String
+  journal   Journal       @relation(fields: [journalId], references: [id])
+  date      DateTime      @default(now())
+  reference String
+  createdBy String        // User id
+  items     JournalItem[]
+  createdAt DateTime      @default(now())
+}
+
+model JournalItem {
+  id                String           @id @default(uuid())
+  journalEntryId    String
+  journalEntry      JournalEntry     @relation(fields: [journalEntryId], references: [id])
+  accountId         String
+  account           Account          @relation(fields: [accountId], references: [id])
+  debit             Decimal          @default(0) @db.Decimal(12, 2)
+  credit            Decimal          @default(0) @db.Decimal(12, 2)
+  analyticAccountId String?
+  analyticAccount   AnalyticAccount? @relation(fields: [analyticAccountId], references: [id])
+}
+
+// ---------- Analytic accounts + Budget ----------
+
+enum AnalyticType {
+  INCOME
+  EXPENSE
+}
+
+model AnalyticAccount {
+  id           String        @id @default(uuid())
+  name         String
+  type         AnalyticType
+  journalItems JournalItem[]
+  budgets      Budget[]
+}
+
+model Budget {
+  id                String          @id @default(uuid())
+  name              String
+  periodStart       DateTime
+  periodEnd         DateTime
+  responsiblePerson String
+  plannedAmount     Decimal         @db.Decimal(12, 2)
+  analyticAccountId String
+  analyticAccount   AnalyticAccount @relation(fields: [analyticAccountId], references: [id])
+  accountId         String?
+  account           Account?        @relation(fields: [accountId], references: [id])
+}
+
+// ---------- Purchase flow ----------
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  BILLED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id       String      @id @default(uuid())
+  vendorId String
+  vendor   Contact     @relation(fields: [vendorId], references: [id])
+  date     DateTime    @default(now())
+  status   OrderStatus @default(DRAFT)
+  items    POItem[]
+  bill     VendorBill?
+}
+
+model POItem {
+  id        String        @id @default(uuid())
+  poId      String
+  po        PurchaseOrder @relation(fields: [poId], references: [id])
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal       @db.Decimal(12, 2)
+}
+
+enum BillStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model VendorBill {
+  id             String        @id @default(uuid())
+  poId           String        @unique
+  po             PurchaseOrder @relation(fields: [poId], references: [id])
+  invoiceDate    DateTime      @default(now())
+  dueDate        DateTime
+  amount         Decimal       @db.Decimal(12, 2)
+  status         BillStatus    @default(UNPAID)
+  journalEntryId String?
+  payments       Payment[]
+}
+
+// ---------- Sales flow ----------
+
+model SalesOrder {
+  id         String           @id @default(uuid())
+  customerId String
+  customer   Contact          @relation(fields: [customerId], references: [id])
+  date       DateTime         @default(now())
+  status     OrderStatus      @default(DRAFT)
+  items      SOItem[]
+  invoice    CustomerInvoice?
+}
+
+model SOItem {
+  id        String     @id @default(uuid())
+  soId      String
+  so        SalesOrder @relation(fields: [soId], references: [id])
+  productId String
+  product   Product    @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal    @db.Decimal(12, 2)
+  taxRate   Decimal    @default(0) @db.Decimal(5, 2)
+}
+
+model CustomerInvoice {
+  id             String     @id @default(uuid())
+  soId           String     @unique
+  so             SalesOrder @relation(fields: [soId], references: [id])
+  invoiceDate    DateTime   @default(now())
+  dueDate        DateTime
+  amount         Decimal    @db.Decimal(12, 2)
+  status         BillStatus @default(UNPAID)
+  journalEntryId String?
+  payments       Payment[]
+}
+
+// ---------- Payments ----------
+
+enum PaymentDirection {
+  IN   // receipt from customer
+  OUT  // payment to vendor
+}
+
+enum PaymentMode {
+  CASH
+  BANK
+}
+
+model Payment {
+  id                String           @id @default(uuid())
+  direction         PaymentDirection
+  mode              PaymentMode
+  amount            Decimal          @db.Decimal(12, 2)
+  date              DateTime         @default(now())
+  vendorBillId      String?
+  vendorBill        VendorBill?      @relation(fields: [vendorBillId], references: [id])
+  customerInvoiceId String?
+  customerInvoice   CustomerInvoice? @relation(fields: [customerInvoiceId], references: [id])
+  journalEntryId    String?
+  createdAt         DateTime         @default(now())
 }

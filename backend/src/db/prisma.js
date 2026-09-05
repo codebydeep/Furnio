@@ -2,7 +2,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../generated/prisma/client.ts'
 
 // Reuse the same instance in development to avoid exhausting DB connections
-// due to hot reloads (globalThis persists across HMR cycles in Node.js)
 const globalForPrisma = globalThis
 
 function createPrismaClient() {
@@ -14,7 +13,7 @@ function createPrismaClient() {
 }
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
+ 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
