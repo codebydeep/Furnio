@@ -35,8 +35,8 @@ export default function DashboardStub() {
     <div className="dash-stub">
       {/* Top bar */}
       <header className="dash-stub-header">
-        <Link to="/" className="auth-logo">=
-          <span className="auth-logo-name">UrbanBooks</span>
+        <Link to="/" className="auth-logo">
+          <span className="auth-logo-name">FurNio</span>
         </Link>
         <div className="dash-stub-user">
           <span className="dash-stub-role">{user?.role}</span>

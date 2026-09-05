@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, FileSpreadsheet, BookMarked,
   BookOpenCheck, ShoppingCart, FileText, CreditCard,
-  BarChart3, TrendingUp, PieChart, ChevronLeft, ChevronRight,
+  BarChart3, TrendingUp, PieChart, ChevronLeft, ChevronRight, ChevronDown,
   LogOut, Settings, Bell, Search, Menu, X, UserCog,
   Activity, BookOpen,
 } from 'lucide-react'
@@ -66,6 +66,12 @@ const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
       { label: 'Budget Report', to: '/reports/budget',        icon: PieChart   },
     ],
   },
+  {
+    group: 'Portal',
+    items: [
+      { label: 'Customer Portal', to: '/my-invoices', icon: FileText },
+    ],
+  },
 ]
 
 const USER_ONLY_GROUPS: { group: string; items: NavItem[] }[] = [
@@ -75,7 +81,10 @@ const USER_ONLY_GROUPS: { group: string; items: NavItem[] }[] = [
   },
   {
     group: 'Portal',
-    items: [{ label: 'My Invoices', to: '/my-invoices', icon: FileText }],
+    items: [
+      { label: 'Invoices & Bills', to: '/my-invoices', icon: FileText },
+      { label: 'Payment History',  to: '/my-invoices?tab=payments', icon: CreditCard },
+    ],
   },
 ]
 
@@ -112,7 +121,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         {!collapsed && (
           <Link to="/dashboard" className="db-brand">
             <div className="db-brand-icon"><BookOpenCheck size={16} /></div>
-            <span className="db-brand-name">UrbanBooks</span>
+            <span className="db-brand-name">FurNio</span>
           </Link>
         )}
         <button className="db-collapse-btn" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
@@ -167,20 +176,96 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
   )
 }
 
+const TOP_CATEGORIES = [
+  {
+    name: 'Sales',
+    items: [
+      { label: 'Sales order',  to: '/transactions/sales-order' },
+      { label: 'Sale Invoice', to: '/transactions/invoice' },
+      { label: 'Receipt',      to: '/transactions/payment' },
+    ],
+  },
+  {
+    name: 'Purchase',
+    items: [
+      { label: 'Purchase Order', to: '/transactions/purchase-order' },
+      { label: 'Purchase Bill',  to: '/transactions/vendor-bill' },
+      { label: 'Payment',        to: '/transactions/payment' },
+    ],
+  },
+  {
+    name: 'Account',
+    items: [
+      { label: 'Contact',           to: '/master/contacts' },
+      { label: 'Product',           to: '/master/products' },
+      { label: 'Analyticals',       to: '/master/analytic-accounts' },
+      { label: 'Analytical Budget', to: '/master/budget' },
+      { label: 'Chart of Account',  to: '/master/coa' },
+      { label: 'Journals',          to: '/master/journals' },
+      { label: 'Journal Entries',   to: '/transactions/journal-entries' },
+    ],
+  },
+  {
+    name: 'Report',
+    items: [
+      { label: 'Balancesheet',   to: '/reports/balance-sheet' },
+      { label: 'Profit and Loss', to: '/reports/profit-loss' },
+      { label: 'Budget Report',  to: '/reports/budget' },
+    ],
+  },
+]
+
 function Topbar({ onMobileMenu }: { onMobileMenu: () => void }) {
   const { user } = useAuthStore()
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U'
+  const [activeMenu, setActiveMenu] = useState<string | null>(null)
 
   return (
-    <header className="db-topbar">
+    <header className="db-topbar flex-wrap gap-y-2">
       <button className="db-mobile-menu-btn" onClick={onMobileMenu}><Menu size={20} /></button>
-      <div className="db-search-wrap">
+
+      {/* Wireframe top category navigation (Screenshot 5) */}
+      <nav className="wf-topbar-nav hidden md:flex" onMouseLeave={() => setActiveMenu(null)}>
+        {TOP_CATEGORIES.map(cat => {
+          const isOpen = activeMenu === cat.name
+          return (
+            <div key={cat.name} className="relative">
+              <button
+                type="button"
+                className="wf-nav-dropdown-trigger"
+                data-active={isOpen}
+                onClick={() => setActiveMenu(isOpen ? null : cat.name)}
+                onMouseEnter={() => setActiveMenu(cat.name)}
+              >
+                <span>{cat.name}</span>
+                <ChevronDown size={13} className={cn('transition-transform duration-150', isOpen && 'rotate-180 text-white')} />
+              </button>
+              {isOpen && (
+                <div className="wf-dropdown-menu">
+                  {cat.items.map(item => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className="wf-dropdown-item"
+                      onClick={() => setActiveMenu(null)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </nav>
+
+      <div className="db-search-wrap ml-auto">
         <Search size={14} className="db-search-icon" />
         <Input placeholder="Search invoices, contacts…" className="db-search-input" />
       </div>
       <div className="db-topbar-right">
         <ThemeToggle />
-        <button className="db-notif-btn">
+        <button className="db-notif-btn" title="Notifications">
           <Bell size={17} />
           <span className="db-notif-dot" />
         </button>

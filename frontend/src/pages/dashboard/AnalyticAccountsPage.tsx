@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   PieChart, Plus, X, Loader2, Pencil, TrendingUp, TrendingDown,
+  LayoutGrid, List, Search,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ export default function AnalyticAccountsPage() {
   const [saving,   setSaving]   = useState(false)
   const [formErr,  setFormErr]  = useState('')
   const [search,   setSearch]   = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
 
   useEffect(() => { fetchAnalyticAccounts() }, []) // eslint-disable-line
 
@@ -146,13 +148,50 @@ export default function AnalyticAccountsPage() {
         </Card>
       )}
 
-      {/* ── Search ────────────────────────────────────── */}
-      <div className="relative mb-3">
-        <input className="auth-input pl-3 w-full max-w-xs"
-          placeholder="Search analytic accounts…"
-          value={search} onChange={e => setSearch(e.target.value)} />
+      {/* ── Toolbar: Search + View Mode Switcher ─────── */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            className="auth-input pl-8 w-full"
+            placeholder="Search analytic accounts…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* View Mode Toggle: [List] [Kanban] */}
+        <div className="flex items-center p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="List View"
+          >
+            <List size={13} />
+            <span>List</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('kanban')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'kanban'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="Kanban View"
+          >
+            <LayoutGrid size={13} />
+            <span>Kanban</span>
+          </button>
+        </div>
       </div>
 
+      {/* ── Error ───────────────────────────────────── */}
       {error && (
         <div className="auth-error mb-3">
           <span>{error}</span>
@@ -160,18 +199,73 @@ export default function AnalyticAccountsPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 p-12 text-[var(--text-muted)]">
-              <PieChart size={32} className="opacity-30" />
-              <p className="text-sm">No analytic accounts found.</p>
-            </div>
-          ) : (
+      {/* ── Content View: List or Kanban ────────────── */}
+      {loading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 p-12 text-[var(--text-muted)]">
+            <PieChart size={32} className="opacity-30" />
+            <p className="text-sm">No analytic accounts found.</p>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'kanban' ? (
+        /* Kanban Card Grid (Wireframe Page 1: "Create Kanban and List View in the same manner for Product, Analyticals") */
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          {filtered.map(aa => (
+            <Card
+              key={aa.id}
+              onClick={() => openEdit(aa)}
+              className="cursor-pointer border border-[var(--border)] hover:border-[var(--accent)]/60 hover:shadow-md transition-all group bg-[var(--surface)]"
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                        aa.type === 'INCOME' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'
+                      }`}>
+                        {aa.type === 'INCOME' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] text-[var(--text-muted)]">#{aa.id}</span>
+                        <h4 className="text-sm font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors line-clamp-1">
+                          {aa.name}
+                        </h4>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-[var(--border)]/60 flex items-center justify-between">
+                    <span className="text-xs text-[var(--text-muted)]">Type:</span>
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${TYPE_BADGE[aa.type]}`}>
+                      {aa.type === 'INCOME' ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                      {aa.type}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-1 pt-2.5 mt-2.5 border-t border-[var(--border)]">
+                  <button
+                    onClick={e => { e.stopPropagation(); openEdit(aa) }}
+                    className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    title="Edit (Open Form View)"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* List View (Master default per Page 1 / Page 11 rule) */
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -183,7 +277,12 @@ export default function AnalyticAccountsPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(aa => (
-                  <TableRow key={aa.id}>
+                  <TableRow
+                    key={aa.id}
+                    onClick={() => openEdit(aa)}
+                    className="cursor-pointer hover:bg-[var(--surface-2)]/60 transition-colors"
+                    title="Click to view/edit details"
+                  >
                     <TableCell className="pl-5 font-mono text-xs text-[var(--text-muted)]">#{aa.id}</TableCell>
                     <TableCell className="text-sm font-medium text-[var(--text)]">{aa.name}</TableCell>
                     <TableCell>
@@ -195,8 +294,11 @@ export default function AnalyticAccountsPage() {
                       </span>
                     </TableCell>
                     <TableCell className="pr-5 text-right">
-                      <button onClick={() => openEdit(aa)}
-                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+                      <button
+                        onClick={e => { e.stopPropagation(); openEdit(aa) }}
+                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                        title="Edit"
+                      >
                         <Pencil size={13} />
                       </button>
                     </TableCell>
@@ -204,9 +306,9 @@ export default function AnalyticAccountsPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

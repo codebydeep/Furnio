@@ -52,7 +52,7 @@ app.use(cors({
 app.use(express.json())
 
 /* ── Health check ───────────────────────────────────────────── */
-app.get('/', (_req, res) => res.json({ status: 'ok', service: 'DealFlow API' }))
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'FurNio API' }))
 
 /* ── Routes ─────────────────────────────────────────────────── */
 app.use('/api/auth',              authRoutes)
@@ -71,6 +71,7 @@ app.use('/api/purchase-orders',    purchaseOrderRouter)
 app.use('/api/vendor-bills',       vendorBillRouter)
 app.use('/api/sales-orders',       salesOrderRouter)
 app.use('/api/customer-invoices',  customerInvoiceRouter)
+app.use('/api/invoices',           customerInvoiceRouter)
 app.use('/api/payments',           paymentRouter)
 app.use('/api/journal-entries',    journalEntryRouter)
 

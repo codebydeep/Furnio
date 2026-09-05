@@ -7,9 +7,9 @@ export default function UnauthorizedPage() {
   const { user }  = useAuthStore()
 
   function goBack() {
-    if (user?.role === 'admin')      navigate('/dashboard/admin')
-    else if (user?.role === 'accountant') navigate('/dashboard/accountant')
-    else navigate('/dashboard/contact')
+    if (user?.role === 'ADMIN')           navigate('/dashboard')
+    else if (user?.role === 'ACCOUNTANT') navigate('/dashboard')
+    else navigate('/dashboard')
   }
 
   return (

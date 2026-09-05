@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Plus, Trash2, Loader2, X, Eye, EyeOff, Pencil, ShieldCheck,
+  Plus, Trash2, Loader2, X, Eye, EyeOff, ShieldCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

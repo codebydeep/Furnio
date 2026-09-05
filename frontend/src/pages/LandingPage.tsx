@@ -1,10 +1,12 @@
-import LocomotiveProvider from '@/lib/LocomotiveProvider'
-import Navbar from '@/components/Navbar'
-import HeroSection from '@/components/HeroSection'
-import ActorsSection from '@/components/ActorsSection'
-import MasterDataSection from '@/components/MasterDataSection'
+import LocomotiveProvider   from '@/lib/LocomotiveProvider'
+import Navbar               from '@/components/Navbar'
+import HeroSection          from '@/components/HeroSection'
+import LogosStrip           from '@/components/LogosStrip'
+import FeaturesSection      from '@/components/FeaturesSection'
+import AboutSection         from '@/components/AboutSection'
 import TransactionFlowSection from '@/components/TransactionFlowSection'
-import SystemEngineSection from '@/components/SystemEngineSection'
+import SystemEngineSection  from '@/components/SystemEngineSection'
+import FooterSection        from '@/components/FooterSection'
 
 export default function LandingPage() {
   return (
@@ -16,28 +18,39 @@ export default function LandingPage() {
       */}
       <Navbar />
 
-      {/*
-        Each section is its own data-scroll-section.
-        Locomotive measures each one independently — no overlap.
-      */}
+      {/* Hero */}
       <section data-scroll-section>
         <HeroSection />
       </section>
 
+      {/* Trusted-by logos */}
       <section data-scroll-section>
-        <ActorsSection />
+        <LogosStrip />
       </section>
 
+      {/* Features — Invoice, Payslip, Reports … */}
       <section data-scroll-section>
-        <MasterDataSection />
+        <FeaturesSection />
       </section>
 
+      {/* About FurNio */}
       <section data-scroll-section>
+        <AboutSection />
+      </section>
+
+      {/* Transaction workflow */}
+      <section data-scroll-section id="workflow">
         <TransactionFlowSection />
       </section>
 
-      <section data-scroll-section>
+      {/* System / accounting engine */}
+      <section data-scroll-section id="system">
         <SystemEngineSection />
+      </section>
+
+      {/* Footer */}
+      <section data-scroll-section id="blog">
+        <FooterSection />
       </section>
     </LocomotiveProvider>
   )

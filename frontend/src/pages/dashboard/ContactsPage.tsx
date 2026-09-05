@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   Users, Plus, X, Loader2, Search, Archive, RefreshCw,
-  Phone, Mail, MapPin, Pencil,
+  Phone, Mail, MapPin, Pencil, LayoutGrid, List,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Table, TableBody, TableCell,
@@ -31,6 +30,7 @@ export default function ContactsPage() {
   } = useContactStore()
 
   const [search,       setSearch]       = useState('')
+  const [viewMode,     setViewMode]     = useState<'list' | 'kanban'>('list')
   const [showArchived, setShowArchived] = useState(false)
   const [showForm,     setShowForm]     = useState(false)
   const [editing,      setEditing]      = useState<Contact | null>(null)
@@ -170,15 +170,47 @@ export default function ContactsPage() {
         </Card>
       )}
 
-      {/* ── Search bar ──────────────────────────────── */}
-      <div className="relative mb-3">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-        <input
-          className="auth-input pl-8 w-full max-w-xs"
-          placeholder="Search by name, email or mobile…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      {/* ── Toolbar: Search + View Mode Switcher ─────── */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            className="auth-input pl-8 w-full"
+            placeholder="Search by name, email or mobile…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* View Mode Toggle: [List] [Kanban] */}
+        <div className="flex items-center p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="List View"
+          >
+            <List size={13} />
+            <span>List</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('kanban')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'kanban'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="Kanban View"
+          >
+            <LayoutGrid size={13} />
+            <span>Kanban</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Error ───────────────────────────────────── */}
@@ -189,19 +221,91 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* ── Table ───────────────────────────────────── */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 p-12 text-[var(--text-muted)]">
-              <Users size={32} className="opacity-30" />
-              <p className="text-sm">No contacts found.</p>
-            </div>
-          ) : (
+      {/* ── Content View: List or Kanban ────────────── */}
+      {loading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-2 p-12 text-[var(--text-muted)]">
+            <Users size={32} className="opacity-30" />
+            <p className="text-sm">No contacts found.</p>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'kanban' ? (
+        /* Kanban Card Grid (Wireframe Page 1) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          {filtered.map(c => (
+            <Card
+              key={c.id}
+              onClick={() => openEdit(c)}
+              className={`cursor-pointer border border-[var(--border)] hover:border-[var(--accent)]/60 hover:shadow-md transition-all group bg-[var(--surface)] ${
+                c.isArchived ? 'opacity-50' : ''
+              }`}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar className="h-10 w-10 border border-[var(--border)] shrink-0">
+                        <AvatarFallback className="text-xs font-bold bg-[var(--surface-2)] text-[var(--text)]">
+                          {c.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="overflow-hidden">
+                        <h4 className="text-sm font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
+                          {c.name}
+                        </h4>
+                        <span className={`inline-block text-[10px] font-semibold px-2 py-0.2 rounded-full border mt-0.5 ${TYPE_BADGE[c.type]}`}>
+                          {c.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-[var(--text-muted)] mt-2">
+                    <div className="flex items-center gap-2">
+                      <Mail size={12} className="shrink-0 text-[var(--text-faint)]" />
+                      <span className="truncate">{c.email || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone size={12} className="shrink-0 text-[var(--text-faint)]" />
+                      <span>{c.mobile || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin size={12} className="shrink-0 text-[var(--text-faint)]" />
+                      <span className="truncate">{[c.city, c.state].filter(Boolean).join(', ') || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t border-[var(--border)]">
+                  <button
+                    onClick={e => { e.stopPropagation(); openEdit(c) }}
+                    className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    title="Edit (Open Form View)"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); toggleArchive(c) }}
+                    className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    title={c.isArchived ? 'Unarchive' : 'Archive'}
+                  >
+                    {c.isArchived ? <RefreshCw size={13} /> : <Archive size={13} />}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* List View (Master default per Page 1 / Page 11 rule) */
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -215,7 +319,12 @@ export default function ContactsPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(c => (
-                  <TableRow key={c.id} className={c.isArchived ? 'opacity-50' : ''}>
+                  <TableRow
+                    key={c.id}
+                    onClick={() => openEdit(c)}
+                    className={`${c.isArchived ? 'opacity-50' : ''} cursor-pointer hover:bg-[var(--surface-2)]/60 transition-colors`}
+                    title="Click to view/edit details"
+                  >
                     <TableCell className="pl-5">
                       <div className="flex items-center gap-2">
                         <Avatar className="h-7 w-7">
@@ -250,14 +359,14 @@ export default function ContactsPage() {
                     <TableCell className="pr-5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => openEdit(c)}
+                          onClick={e => { e.stopPropagation(); openEdit(c) }}
                           className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                           title="Edit"
                         >
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => toggleArchive(c)}
+                          onClick={e => { e.stopPropagation(); toggleArchive(c) }}
                           className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                           title={c.isArchived ? 'Unarchive' : 'Archive'}
                         >
@@ -269,9 +378,9 @@ export default function ContactsPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

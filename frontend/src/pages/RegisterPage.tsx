@@ -34,12 +34,12 @@ export default function RegisterPage() {
       <div className="auth-card auth-card--wide">
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark"><BookOpen size={18} /></div>
-          <span className="auth-logo-name">UrbanBooks</span>
+          <span className="auth-logo-name">FurNio</span>
         </Link>
 
         <div className="auth-header">
           <h1 className="auth-title">Create your account</h1>
-          <p className="auth-sub">Set up your Urban Furniture accounting workspace</p>
+          <p className="auth-sub">Set up your FurNio accounting workspace</p>
         </div>
 
         {displayError && (

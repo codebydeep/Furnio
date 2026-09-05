@@ -74,7 +74,7 @@ export default function ActorsSection() {
         <Badge variant="outline" className="section-eyebrow">Primary Actors</Badge>
         <h2 className="section-title">Three roles, one system</h2>
         <p className="section-sub">
-          Every user in UrbanBooks has a clearly defined role — from full system
+          Every user in FurNio has a clearly defined role — from full system
           control down to view-only portal access.
         </p>
       </div>

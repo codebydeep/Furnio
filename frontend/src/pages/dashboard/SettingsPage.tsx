@@ -6,7 +6,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store'
 
@@ -17,7 +16,7 @@ const ROLE_BADGE: Record<string, string> = {
 }
 
 export default function SettingsPage() {
-  const { user, login } = useAuthStore()
+  const { user } = useAuthStore()
 
   /* ── Profile section ──────────────────────────── */
   const [name,       setName]       = useState(user?.name ?? '')

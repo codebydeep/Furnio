@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Package, Plus, X, Loader2, Search, Archive,
-  RefreshCw, Pencil, Tag,
+  RefreshCw, Pencil, Tag, LayoutGrid, List,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ export default function ProductsPage() {
   } = useProductStore()
 
   const [search,       setSearch]       = useState('')
+  const [viewMode,     setViewMode]     = useState<'list' | 'kanban'>('list')
   const [showArchived, setShowArchived] = useState(false)
   const [showForm,     setShowForm]     = useState(false)
   const [editing,      setEditing]      = useState<Product | null>(null)
@@ -146,12 +147,50 @@ export default function ProductsPage() {
         </Card>
       )}
 
-      <div className="relative mb-3">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-        <input className="auth-input pl-8 w-full max-w-xs" placeholder="Search products…"
-          value={search} onChange={e => setSearch(e.target.value)} />
+      {/* ── Toolbar: Search + View Mode Switcher ─────── */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            className="auth-input pl-8 w-full"
+            placeholder="Search products…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* View Mode Toggle: [List] [Kanban] */}
+        <div className="flex items-center p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="List View"
+          >
+            <List size={13} />
+            <span>List</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('kanban')}
+            className={`px-2.5 py-1 rounded flex items-center gap-1.5 text-xs font-medium transition-colors ${
+              viewMode === 'kanban'
+                ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm font-semibold'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+            }`}
+            title="Kanban View"
+          >
+            <LayoutGrid size={13} />
+            <span>Kanban</span>
+          </button>
+        </div>
       </div>
 
+      {/* ── Error ───────────────────────────────────── */}
       {error && (
         <div className="auth-error mb-3">
           <span>{error}</span>
@@ -159,18 +198,92 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 p-12 text-[var(--text-muted)]">
-              <Package size={32} className="opacity-30" />
-              <p className="text-sm">No products found.</p>
-            </div>
-          ) : (
+      {/* ── Content View: List or Kanban ────────────── */}
+      {loading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-2 p-12 text-[var(--text-muted)]">
+            <Package size={32} className="opacity-30" />
+            <p className="text-sm">No products found.</p>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'kanban' ? (
+        /* Kanban Card Grid (Wireframe Page 1) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          {filtered.map(p => (
+            <Card
+              key={p.id}
+              onClick={() => openEdit(p)}
+              className={`cursor-pointer border border-[var(--border)] hover:border-[var(--accent)]/60 hover:shadow-md transition-all group bg-[var(--surface)] ${
+                p.isArchived ? 'opacity-50' : ''
+              }`}
+            >
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-lg bg-[var(--surface-2)] flex items-center justify-center border border-[var(--border)] group-hover:border-[var(--accent)]/40 transition-colors shrink-0">
+                        <Package size={18} className="text-[var(--accent)]" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <h4 className="text-sm font-semibold text-[var(--text)] group-hover:text-[var(--accent)] transition-colors truncate">
+                          {p.name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={`text-[10px] font-semibold px-2 py-0.2 rounded-full border ${TYPE_BADGE[p.type]}`}>
+                            {p.type}
+                          </span>
+                          {p.category && (
+                            <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[80px]">
+                              {p.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs mt-3 pt-3 border-t border-[var(--border)]/60">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[var(--text-muted)]">Sales Price:</span>
+                      <span className="font-semibold text-[var(--text)]">{fmt(p.salesPrice)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[var(--text-muted)]">Cost:</span>
+                      <span className="font-medium text-[var(--text-muted)]">{fmt(p.cost)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-1 pt-3 mt-3 border-t border-[var(--border)]">
+                  <button
+                    onClick={e => { e.stopPropagation(); openEdit(p) }}
+                    className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    title="Edit (Open Form View)"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); archive(p.id) }}
+                    className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    title="Archive"
+                  >
+                    <Archive size={13} />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* List View (Master default per Page 1 / Page 11 rule) */
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -184,7 +297,12 @@ export default function ProductsPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(p => (
-                  <TableRow key={p.id} className={p.isArchived ? 'opacity-50' : ''}>
+                  <TableRow
+                    key={p.id}
+                    onClick={() => openEdit(p)}
+                    className={`${p.isArchived ? 'opacity-50' : ''} cursor-pointer hover:bg-[var(--surface-2)]/60 transition-colors`}
+                    title="Click to view/edit details"
+                  >
                     <TableCell className="pl-5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-md bg-[var(--surface-2)] flex items-center justify-center">
@@ -208,13 +326,18 @@ export default function ProductsPage() {
                     <TableCell className="text-sm text-[var(--text-muted)]">{fmt(p.cost)}</TableCell>
                     <TableCell className="pr-5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(p)}
-                          className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+                        <button
+                          onClick={e => { e.stopPropagation(); openEdit(p) }}
+                          className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                          title="Edit"
+                        >
                           <Pencil size={13} />
                         </button>
-                        <button onClick={() => archive(p.id)}
+                        <button
+                          onClick={e => { e.stopPropagation(); archive(p.id) }}
                           className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                          title="Archive">
+                          title="Archive"
+                        >
                           <Archive size={13} />
                         </button>
                       </div>
@@ -223,9 +346,9 @@ export default function ProductsPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

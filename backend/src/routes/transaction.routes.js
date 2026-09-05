@@ -38,6 +38,7 @@ import {
   registerInvoicePayment,
   getMyInvoices,
   getMyBills,
+  getMyPayments,
 } from '../controllers/customerInvoice.controllers.js'
 
 import {
@@ -83,12 +84,15 @@ salesOrderRouter.post  ('/:id/create-invoice', ...staff, createInvoiceFromSO)
 export const customerInvoiceRouter = Router()
 customerInvoiceRouter.get('/my',           authAll, getMyInvoices)
 customerInvoiceRouter.get('/my-bills',     authAll, getMyBills)
+customerInvoiceRouter.get('/my-payments',  authAll, getMyPayments)
 customerInvoiceRouter.get('/',             ...staff, getAllCustomerInvoices)
 customerInvoiceRouter.get('/:id',          authAll, getCustomerInvoiceById)
 customerInvoiceRouter.post('/:id/payments', authAll, validate(invoicePaymentSchema), registerInvoicePayment)
+customerInvoiceRouter.post('/:id/pay',      authAll, registerInvoicePayment)
 
 /* ── Payments ────────────────────────────────────────────────── */
 export const paymentRouter = Router()
+paymentRouter.get('/my',  authAll, getMyPayments)
 paymentRouter.get('/',    ...staff, getAllPayments)
 paymentRouter.get('/:id', ...staff, getPaymentById)
 

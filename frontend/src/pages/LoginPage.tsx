@@ -18,7 +18,7 @@ export default function LoginPage() {
     if (user) redirectByRole(user.role)
   }, [user])
 
-  function redirectByRole(role: string) {
+  function redirectByRole(_role: string) {
     if (from) { navigate(from, { replace: true }); return }
     navigate('/dashboard', { replace: true })
   }
@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className="auth-card">
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark"><BookOpen size={18} /></div>
-          <span className="auth-logo-name">UrbanBooks</span>
+          <span className="auth-logo-name">FurNio</span>
         </Link>
 
         <div className="auth-header">
