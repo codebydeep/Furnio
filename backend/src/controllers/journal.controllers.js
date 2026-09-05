@@ -1,16 +1,16 @@
-import prisma from '../db/prisma.js'
+import db from '../libs/db.js'
 
 export async function createJournal(req, res) {
   try {
     const { name, type, defaultAccountId } = req.body
 
-    const existing = await prisma.journal.findFirst({ where: { name, type } })
+    const existing = await db.journal.findFirst({ where: { name, type } })
     if (existing) {
       return res.status(409).json({ message: `A journal named "${name}" of type ${type} already exists.` })
     }
 
     if (defaultAccountId) {
-      const account = await prisma.account.findUnique({ where: { id: defaultAccountId } })
+      const account = await db.account.findUnique({ where: { id: defaultAccountId } })
       if (!account) {
         return res.status(404).json({ message: 'Default account not found.' })
       }
@@ -19,7 +19,7 @@ export async function createJournal(req, res) {
       }
     }
 
-    const journal = await prisma.journal.create({
+    const journal = await db.journal.create({
       data: { name, type, defaultAccountId: defaultAccountId ?? null },
       include: { defaultAccount: true },
     })
@@ -38,7 +38,7 @@ export async function getAllJournals(req, res) {
     const where = {}
     if (type) where.type = type
 
-    const journals = await prisma.journal.findMany({
+    const journals = await db.journal.findMany({
       where,
       include: { defaultAccount: true },
       orderBy: { name: 'asc' },
@@ -53,7 +53,7 @@ export async function getAllJournals(req, res) {
 
 export async function getJournalById(req, res) {
   try {
-    const journal = await prisma.journal.findUnique({
+    const journal = await db.journal.findUnique({
       where: { id: req.params.id },
       include: { defaultAccount: true },
     })
@@ -74,13 +74,13 @@ export async function updateJournal(req, res) {
     const { id } = req.params
     const { name, type, defaultAccountId } = req.body
 
-    const existing = await prisma.journal.findUnique({ where: { id } })
+    const existing = await db.journal.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Journal not found.' })
     }
 
     if (defaultAccountId) {
-      const account = await prisma.account.findUnique({ where: { id: defaultAccountId } })
+      const account = await db.account.findUnique({ where: { id: defaultAccountId } })
       if (!account) {
         return res.status(404).json({ message: 'Default account not found.' })
       }
@@ -94,7 +94,7 @@ export async function updateJournal(req, res) {
     if (type !== undefined)             data.type             = type
     if (defaultAccountId !== undefined) data.defaultAccountId = defaultAccountId
 
-    const journal = await prisma.journal.update({
+    const journal = await db.journal.update({
       where: { id },
       data,
       include: { defaultAccount: true },
@@ -111,7 +111,7 @@ export async function deleteJournal(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.journal.findUnique({
+    const existing = await db.journal.findUnique({
       where: { id },
       include: { _count: { select: { entries: true } } },
     })
@@ -126,7 +126,7 @@ export async function deleteJournal(req, res) {
       })
     }
 
-    await prisma.journal.delete({ where: { id } })
+    await db.journal.delete({ where: { id } })
 
     return res.status(200).json({ message: 'Journal deleted successfully.' })
   } catch (err) {

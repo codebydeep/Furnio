@@ -1,17 +1,17 @@
-import prisma from '../db/prisma.js'
+import db from '../libs/db.js'
 
 export async function createContact(req, res) {
   try {
     const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
 
     if (email) {
-      const existing = await prisma.contact.findFirst({ where: { email } })
+      const existing = await db.contact.findFirst({ where: { email } })
       if (existing) {
         return res.status(409).json({ message: 'A contact with that email already exists.' })
       }
     }
 
-    const contact = await prisma.contact.create({
+    const contact = await db.contact.create({
       data: { name, type, email, mobile, city, state, pincode, profileImage },
     })
 
@@ -27,11 +27,11 @@ export async function getAllContacts(req, res) {
     const { type, archived } = req.query
 
     const where = {}
-    if (type)               where.type     = type
+    if (type)                where.type     = type
     if (archived === 'true') where.archived = true
-    else                    where.archived = false
+    else                     where.archived = false
 
-    const contacts = await prisma.contact.findMany({
+    const contacts = await db.contact.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     })
@@ -45,7 +45,7 @@ export async function getAllContacts(req, res) {
 
 export async function getContactById(req, res) {
   try {
-    const contact = await prisma.contact.findUnique({
+    const contact = await db.contact.findUnique({
       where: { id: req.params.id },
       include: { user: { select: { id: true, email: true, role: true } } },
     })
@@ -65,7 +65,7 @@ export async function updateContact(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.contact.findUnique({ where: { id } })
+    const existing = await db.contact.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Contact not found.' })
     }
@@ -76,13 +76,13 @@ export async function updateContact(req, res) {
 
     const { email } = req.body
     if (email && email !== existing.email) {
-      const conflict = await prisma.contact.findFirst({ where: { email } })
+      const conflict = await db.contact.findFirst({ where: { email } })
       if (conflict) {
         return res.status(409).json({ message: 'Email is already used by another contact.' })
       }
     }
 
-    const contact = await prisma.contact.update({
+    const contact = await db.contact.update({
       where: { id },
       data: req.body,
     })
@@ -98,7 +98,7 @@ export async function archiveContact(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.contact.findUnique({ where: { id } })
+    const existing = await db.contact.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Contact not found.' })
     }
@@ -106,7 +106,7 @@ export async function archiveContact(req, res) {
       return res.status(400).json({ message: 'Contact is already archived.' })
     }
 
-    const contact = await prisma.contact.update({
+    const contact = await db.contact.update({
       where: { id },
       data: { archived: true },
     })
@@ -122,7 +122,7 @@ export async function unarchiveContact(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.contact.findUnique({ where: { id } })
+    const existing = await db.contact.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Contact not found.' })
     }
@@ -130,7 +130,7 @@ export async function unarchiveContact(req, res) {
       return res.status(400).json({ message: 'Contact is not archived.' })
     }
 
-    const contact = await prisma.contact.update({
+    const contact = await db.contact.update({
       where: { id },
       data: { archived: false },
     })

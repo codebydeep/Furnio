@@ -1,10 +1,10 @@
-import prisma from '../db/prisma.js'
+import db from '../libs/db.js'
 
 export async function createProduct(req, res) {
   try {
     const { name, type, salesPrice, costPrice, category } = req.body
 
-    const product = await prisma.product.create({
+    const product = await db.product.create({
       data: { name, type, salesPrice, costPrice, category: category ?? null },
     })
 
@@ -25,7 +25,7 @@ export async function getAllProducts(req, res) {
     if (archived === 'true') where.archived = true
     else                     where.archived = false
 
-    const products = await prisma.product.findMany({
+    const products = await db.product.findMany({
       where,
       orderBy: { name: 'asc' },
     })
@@ -39,7 +39,7 @@ export async function getAllProducts(req, res) {
 
 export async function getProductById(req, res) {
   try {
-    const product = await prisma.product.findUnique({ where: { id: req.params.id } })
+    const product = await db.product.findUnique({ where: { id: req.params.id } })
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found.' })
@@ -56,7 +56,7 @@ export async function updateProduct(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.product.findUnique({ where: { id } })
+    const existing = await db.product.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Product not found.' })
     }
@@ -64,7 +64,7 @@ export async function updateProduct(req, res) {
       return res.status(400).json({ message: 'Cannot update an archived product.' })
     }
 
-    const product = await prisma.product.update({
+    const product = await db.product.update({
       where: { id },
       data: req.body,
     })
@@ -80,7 +80,7 @@ export async function archiveProduct(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.product.findUnique({ where: { id } })
+    const existing = await db.product.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Product not found.' })
     }
@@ -88,7 +88,7 @@ export async function archiveProduct(req, res) {
       return res.status(400).json({ message: 'Product is already archived.' })
     }
 
-    const product = await prisma.product.update({
+    const product = await db.product.update({
       where: { id },
       data: { archived: true },
     })
@@ -104,7 +104,7 @@ export async function unarchiveProduct(req, res) {
   try {
     const { id } = req.params
 
-    const existing = await prisma.product.findUnique({ where: { id } })
+    const existing = await db.product.findUnique({ where: { id } })
     if (!existing) {
       return res.status(404).json({ message: 'Product not found.' })
     }
@@ -112,7 +112,7 @@ export async function unarchiveProduct(req, res) {
       return res.status(400).json({ message: 'Product is not archived.' })
     }
 
-    const product = await prisma.product.update({
+    const product = await db.product.update({
       where: { id },
       data: { archived: false },
     })

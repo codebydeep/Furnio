@@ -1,31 +1,328 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
-  
 
-  //user model
+// =========================
+// ENUMS
+// =========================
 
- model User {
+enum UserRole {
+  ADMIN
+  ACCOUNTANT
+  CONTACT
+}
+
+enum ContactType {
+  CUSTOMER
+  VENDOR
+  BOTH
+}
+
+enum ProductType {
+  GOODS
+  SERVICE
+  COMBO
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EXPENSE
+  INCOME
+  CAPITAL
+}
+
+enum JournalType {
+  SALES
+  PURCHASE
+  BANK
+  CASH
+}
+
+enum AnalyticType {
+  INCOME
+  EXPENSES
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+}
+
+// =========================
+// USER
+// =========================
+
+model User {
   id        String   @id @default(uuid())
-  name      String?
+  name      String
+  loginId   String   @unique
   email     String   @unique
-  image     String?
   password  String
-  role      Role     @default(accountant)
+  role      UserRole
+  contactId String?  @unique
+
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-enum Role {
-  admin
-  accountant
-  contact
+// =========================
+// CONTACT MASTER
+// =========================
+
+model Contact {
+  id           String      @id @default(uuid())
+  name         String
+  type         ContactType
+  email        String?
+  mobile       String?
+  city         String?
+  state        String?
+  pincode      String?
+  profileImage String?
+  archived     Boolean     @default(false)
+
+  user           User?
+  purchaseOrders PurchaseOrder[]
+  vendorBills    VendorBill[]
+  salesOrders    SalesOrder[]
+  invoices       CustomerInvoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// PRODUCT MASTER
+// =========================
+
+model Product {
+  id         String      @id @default(uuid())
+  name       String
+  type       ProductType
+  salesPrice Decimal
+  costPrice  Decimal
+  category   String?
+  archived   Boolean     @default(false)
+
+  purchaseItems PurchaseOrderItem[]
+  salesItems    SalesOrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// CHART OF ACCOUNTS
+// =========================
+
+model Account {
+  id       String      @id @default(uuid())
+  name     String
+  type     AccountType
+  archived Boolean     @default(false)
+
+  journalItems       JournalItem[]
+  defaultForJournals Journal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// JOURNAL
+// =========================
+
+model Journal {
+  id               String      @id @default(uuid())
+  name             String
+  type             JournalType
+  defaultAccountId String?
+
+  defaultAccount Account?       @relation(fields: [defaultAccountId], references: [id])
+  entries        JournalEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// JOURNAL ENTRY
+// =========================
+
+model JournalEntry {
+  id        String   @id @default(uuid())
+  journalId String
+  date      DateTime
+  reference String?
+
+  journal Journal       @relation(fields: [journalId], references: [id])
+  items   JournalItem[]
+
+  createdAt DateTime @default(now())
+}
+
+// =========================
+// JOURNAL ITEM
+// =========================
+
+model JournalItem {
+  id             String  @id @default(uuid())
+  journalEntryId String
+  accountId      String
+  debit          Decimal @default(0)
+  credit         Decimal @default(0)
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id])
+  account      Account      @relation(fields: [accountId], references: [id])
+}
+
+// =========================
+// PURCHASE ORDER
+// =========================
+
+model PurchaseOrder {
+  id        String   @id @default(uuid())
+  vendorId  String
+  orderDate DateTime @default(now())
+
+  vendor     Contact            @relation(fields: [vendorId], references: [id])
+  items      PurchaseOrderItem[]
+  vendorBill VendorBill?
+}
+
+// =========================
+// PURCHASE ORDER ITEM
+// =========================
+
+model PurchaseOrderItem {
+  id              String  @id @default(uuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Decimal
+  unitPrice       Decimal
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
+}
+
+// =========================
+// VENDOR BILL
+// =========================
+
+model VendorBill {
+  id              String   @id @default(uuid())
+  purchaseOrderId String   @unique
+  vendorId        String
+  invoiceDate     DateTime
+  dueDate         DateTime
+  totalAmount     Decimal
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  vendor        Contact       @relation(fields: [vendorId], references: [id])
+  payments      Payment[]
+}
+
+// =========================
+// SALES ORDER
+// =========================
+
+model SalesOrder {
+  id         String   @id @default(uuid())
+  customerId String
+  orderDate  DateTime @default(now())
+
+  customer Contact          @relation(fields: [customerId], references: [id])
+  items    SalesOrderItem[]
+  invoice  CustomerInvoice?
+}
+
+// =========================
+// SALES ORDER ITEM
+// =========================
+
+model SalesOrderItem {
+  id           String  @id @default(uuid())
+  salesOrderId String
+  productId    String
+  quantity     Decimal
+  unitPrice    Decimal
+  tax          Decimal @default(0)
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+}
+
+// =========================
+// CUSTOMER INVOICE
+// =========================
+
+model CustomerInvoice {
+  id           String    @id @default(uuid())
+  salesOrderId String    @unique
+  customerId   String
+  invoiceDate  DateTime
+  dueDate      DateTime?
+  totalAmount  Decimal
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id])
+  customer   Contact    @relation(fields: [customerId], references: [id])
+  payments   Payment[]
+}
+
+// =========================
+// PAYMENT
+// =========================
+
+model Payment {
+  id          String        @id @default(uuid())
+  amount      Decimal
+  paymentDate DateTime      @default(now())
+  method      PaymentMethod
+  vendorBillId String?
+  invoiceId    String?
+
+  vendorBill VendorBill?      @relation(fields: [vendorBillId], references: [id])
+  invoice    CustomerInvoice? @relation(fields: [invoiceId], references: [id])
+}
+
+// =========================
+// ANALYTIC ACCOUNT
+// =========================
+
+model AnalyticAccount {
+  id   String       @id @default(uuid())
+  name String
+  type AnalyticType
+
+  budgets Budget[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =========================
+// BUDGET
+// =========================
+
+model Budget {
+  id                String   @id @default(uuid())
+  name              String
+  periodStart       DateTime
+  periodEnd         DateTime
+  plannedAmount     Decimal
+  responsiblePerson String
+  analyticAccountId String
+
+  analyticAccount AnalyticAccount @relation(fields: [analyticAccountId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

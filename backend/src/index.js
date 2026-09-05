@@ -1,9 +1,12 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import prisma from './db/prisma.js'
-import authRoutes from './routes/authRoutes.js'
-import { contactRouter, productRouter, accountRouter, journalRouter } from './routes/masterRoutes.js'
+import db from './libs/db.js'
+import authRoutes    from './routes/auth.routes.js'
+import contactRoutes from './routes/contact.routes.js'
+import productRoutes from './routes/product.routes.js'
+import accountRoutes from './routes/account.routes.js'
+import journalRoutes from './routes/journal.routes.js'
 
 const app  = express()
 const port = process.env.PORT || 3000
@@ -27,10 +30,10 @@ app.use(express.json())
 app.get('/', (_req, res) => res.json({ status: 'ok', message: 'DealFlow API is running.' }))
 
 app.use('/api/auth',     authRoutes)
-app.use('/api/contacts', contactRouter)
-app.use('/api/products', productRouter)
-app.use('/api/accounts', accountRouter)
-app.use('/api/journals', journalRouter)
+app.use('/api/contacts', contactRoutes)
+app.use('/api/products', productRoutes)
+app.use('/api/accounts', accountRoutes)
+app.use('/api/journals', journalRoutes)
 
 app.use((_req, res) => res.status(404).json({ message: 'Route not found.' }))
 
@@ -39,7 +42,7 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: err.message || 'Internal server error.' })
 })
 
-prisma.$connect()
+db.$connect()
   .then(() => {
     console.log('Database connected')
     app.listen(port, () => console.log(`Server listening on port ${port}`))

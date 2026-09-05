@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { validate } from './authValidator.js'
+import { validate } from './auth.validator.js'
 
 // Re-export validate so route files only need one import
 export { validate }
