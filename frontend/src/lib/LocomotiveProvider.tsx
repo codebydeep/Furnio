@@ -26,6 +26,9 @@ export default function LocomotiveProvider({ children }: { children: ReactNode }
     // Small delay lets React finish painting all sections before
     // Locomotive measures their heights — prevents overlap/clipping
     const init = setTimeout(() => {
+      const el = containerRef.current
+      if (!el) return
+
       const ls = new LocomotiveScroll({
         el,
         smooth: true,
@@ -71,10 +74,9 @@ export default function LocomotiveProvider({ children }: { children: ReactNode }
 
       ScrollTrigger.refresh()
       setScroll(ls)
-
       // Store on window for Navbar scrollTo calls
       ;(window as any).__locomotiveScroll = ls
-    }, 200)
+    }, 400)
 
     return () => {
       clearTimeout(init)

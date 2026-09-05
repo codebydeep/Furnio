@@ -35,14 +35,14 @@ export default function DashboardStub() {
     <div className="dash-stub">
       {/* Top bar */}
       <header className="dash-stub-header">
-        <Link to="/" className="auth-logo">
+        <Link to="/" className="auth-logo">=
           <span className="auth-logo-name">UrbanBooks</span>
         </Link>
         <div className="dash-stub-user">
           <span className="dash-stub-role">{user?.role}</span>
           <span className="dash-stub-name">{user?.name}</span>
           <button onClick={handleLogout} className="dash-stub-logout" title="Log out">
-            <LogOut size={16} />
+            <LogOut size={10} />
           </button>
         </div>
       </header>

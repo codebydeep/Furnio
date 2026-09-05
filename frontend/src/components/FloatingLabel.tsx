@@ -10,5 +10,5 @@ export default function FloatingLabel({ name, color, style }: FloatingLabelProps
       <span className="floating-dot" style={{ background: color }} />
       <span>{name}</span>
     </div>
-  )
+  ) 
 }
