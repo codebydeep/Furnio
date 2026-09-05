@@ -1,0 +1,1 @@
+This is a repository for Odoo-Hackathon project for Urban Furniture Accounting System.
