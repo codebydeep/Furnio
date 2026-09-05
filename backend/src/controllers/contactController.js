@@ -1,14 +1,9 @@
 import prisma from '../db/prisma.js'
 
-// ---------------------------------------------------------------------------
-// POST /api/contacts
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function createContact(req, res) {
   try {
     const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
 
-    // Prevent duplicate email if provided
     if (email) {
       const existing = await prisma.contact.findFirst({ where: { email } })
       if (existing) {
@@ -27,19 +22,14 @@ export async function createContact(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/contacts
-// ADMIN, ACCOUNTANT — returns active contacts (archived=false)
-// Query: ?type=CUSTOMER|VENDOR|BOTH  &  ?archived=true  (admin can view archived)
-// ---------------------------------------------------------------------------
 export async function getAllContacts(req, res) {
   try {
     const { type, archived } = req.query
 
     const where = {}
-    if (type)                     where.type     = type
-    if (archived === 'true')      where.archived = true
-    else                          where.archived = false
+    if (type)               where.type     = type
+    if (archived === 'true') where.archived = true
+    else                    where.archived = false
 
     const contacts = await prisma.contact.findMany({
       where,
@@ -53,10 +43,6 @@ export async function getAllContacts(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/contacts/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function getContactById(req, res) {
   try {
     const contact = await prisma.contact.findUnique({
@@ -75,10 +61,6 @@ export async function getContactById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function updateContact(req, res) {
   try {
     const { id } = req.params
@@ -112,9 +94,6 @@ export async function updateContact(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id/archive  — soft delete (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function archiveContact(req, res) {
   try {
     const { id } = req.params
@@ -139,9 +118,6 @@ export async function archiveContact(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id/unarchive  — restore (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function unarchiveContact(req, res) {
   try {
     const { id } = req.params

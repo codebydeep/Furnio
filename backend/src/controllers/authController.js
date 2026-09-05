@@ -5,17 +5,11 @@ import { signToken } from '../utils/jwt.js'
 
 const SALT_ROUNDS = 10
 
-/** Strip password before sending user to client */
 function sanitize(user) {
   const { password, ...safe } = user
   return safe
 }
 
-/**
- * Auto-generate a unique loginId from the email prefix.
- * Format: first 6 chars of email local part + 4 random hex chars
- * e.g. deepan@example.com → "deepan3f2a"
- */
 async function generateLoginId(email) {
   const prefix = email.split('@')[0].slice(0, 6).toLowerCase().replace(/[^a-z0-9]/g, '')
   const padded = prefix.padEnd(4, 'x')
@@ -30,10 +24,6 @@ async function generateLoginId(email) {
   return randomBytes(5).toString('hex')
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/auth/register
-// Body: { email, password, role, contactId? }
-// ---------------------------------------------------------------------------
 export async function register(req, res) {
   try {
     const { email, password, role, contactId } = req.body
@@ -85,10 +75,6 @@ export async function register(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// POST /api/auth/login
-// Body: { email, password }
-// ---------------------------------------------------------------------------
 export async function login(req, res) {
   try {
     const { email, password } = req.body
@@ -116,9 +102,6 @@ export async function login(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/auth/me  — get own profile
-// ---------------------------------------------------------------------------
 export async function me(req, res) {
   try {
     const user = await prisma.user.findUnique({
@@ -137,9 +120,6 @@ export async function me(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/auth/users  — list all users (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function getAllUsers(req, res) {
   try {
     const users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } })
@@ -150,9 +130,6 @@ export async function getAllUsers(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/auth/users/:id  — get user by id (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function getUserById(req, res) {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.params.id } })
@@ -166,10 +143,6 @@ export async function getUserById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/auth/users/:id  — update user (ADMIN only)
-// Body: { email?, password?, role? }
-// ---------------------------------------------------------------------------
 export async function updateUser(req, res) {
   try {
     const { id } = req.params
@@ -200,20 +173,11 @@ export async function updateUser(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/auth/users/:id/role  — change a user's role (ADMIN only)
-// Body: { role }
-// Rules:
-//   - Cannot change your own role (prevent self-lockout)
-//   - Changing TO CONTACT requires a contactId on the user
-//   - Changing FROM CONTACT clears contactId
-// ---------------------------------------------------------------------------
 export async function changeRole(req, res) {
   try {
     const { id } = req.params
     const { role } = req.body
 
-    // Prevent self role-change
     if (id === req.user.id) {
       return res.status(403).json({ message: 'You cannot change your own role.' })
     }
@@ -227,7 +191,6 @@ export async function changeRole(req, res) {
       return res.status(400).json({ message: `User already has the role: ${role}.` })
     }
 
-    // Changing TO CONTACT requires contactId to be set on the user
     if (role === 'CONTACT' && !existing.contactId) {
       return res.status(400).json({
         message: 'Cannot assign CONTACT role — user has no linked contactId. Update the user with a contactId first.',
@@ -236,7 +199,6 @@ export async function changeRole(req, res) {
 
     const data = { role }
 
-    // Changing FROM CONTACT → clear contactId
     if (existing.role === 'CONTACT' && role !== 'CONTACT') {
       data.contactId = null
     }
@@ -253,9 +215,6 @@ export async function changeRole(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// DELETE /api/auth/users/:id  — delete user (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function deleteUser(req, res) {
   try {
     const { id } = req.params

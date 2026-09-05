@@ -1,9 +1,5 @@
 import prisma from '../db/prisma.js'
 
-// ---------------------------------------------------------------------------
-// POST /api/products
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function createProduct(req, res) {
   try {
     const { name, type, salesPrice, costPrice, category } = req.body
@@ -19,11 +15,6 @@ export async function createProduct(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/products
-// ADMIN, ACCOUNTANT
-// Query: ?type=GOODS|SERVICE|COMBO  &  ?category=<string>  &  ?archived=true
-// ---------------------------------------------------------------------------
 export async function getAllProducts(req, res) {
   try {
     const { type, category, archived } = req.query
@@ -46,10 +37,6 @@ export async function getAllProducts(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/products/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function getProductById(req, res) {
   try {
     const product = await prisma.product.findUnique({ where: { id: req.params.id } })
@@ -65,10 +52,6 @@ export async function getProductById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/products/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params
@@ -93,9 +76,6 @@ export async function updateProduct(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/products/:id/archive  (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function archiveProduct(req, res) {
   try {
     const { id } = req.params
@@ -120,9 +100,6 @@ export async function archiveProduct(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/products/:id/unarchive  (ADMIN only)
-// ---------------------------------------------------------------------------
 export async function unarchiveProduct(req, res) {
   try {
     const { id } = req.params
