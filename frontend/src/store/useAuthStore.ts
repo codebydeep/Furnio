@@ -2,20 +2,19 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api, type ApiError } from '@/lib/api'
 
-export type UserRole = 'admin' | 'accountant' | 'contact'
+export type UserRole = 'ADMIN' | 'ACCOUNTANT' | 'USER'
 
-/* Matches backend sanitize() output */
 export interface AuthUser {
-  id:        string
-  name:      string | null
+  id:        number
+  name:      string
+  loginId:   string
   email:     string
-  image:     string | null
   role:      UserRole
+  contactId: number | null
   createdAt: string
   updatedAt: string
 }
 
-/* Matches backend login + register response */
 interface AuthResponse {
   message: string
   token:   string
@@ -28,8 +27,8 @@ interface AuthState {
   loading: boolean
   error:   string   | null
 
-  login:      (email: string, password: string) => Promise<boolean>
-  register:   (name: string, email: string, password: string, role?: UserRole) => Promise<boolean>
+  login:      (loginId: string, password: string) => Promise<boolean>
+  register:   (name: string, loginId: string, email: string, password: string) => Promise<boolean>
   logout:     () => void
   clearError: () => void
 }
@@ -37,29 +36,15 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      /* ── DEMO MODE default state ──────────────────────────────
-         Pre-fill a demo user so the dashboard renders without login.
-         Revert: remove these four lines and restore null defaults.
-      ─────────────────────────────────────────────────────────── */
-      user: {
-        id: 'demo-001',
-        name: 'Nimesh Pathak',
-        email: 'nimesh@urbanfurniture.com',
-        image: null,
-        role: 'admin' as UserRole,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      token:   'demo-token',
-      /* ── end demo defaults ──────────────────────────────────── */
+      user:    null,
+      token:   null,
       loading: false,
       error:   null,
 
-      /* ── POST /api/users/login ─────────────────────────────── */
-      login: async (email, password) => {
+      login: async (loginId, password) => {
         set({ loading: true, error: null })
         try {
-          const { data } = await api.post<AuthResponse>('/users/login', { email, password })
+          const { data } = await api.post<AuthResponse>('/auth/login', { loginId, password })
           localStorage.setItem('ub_token', data.token)
           set({ user: data.user, token: data.token, loading: false })
           return true
@@ -70,12 +55,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      /* ── POST /api/users/register ──────────────────────────── */
-      register: async (name, email, password, role = 'accountant') => {
+      register: async (name, loginId, email, password) => {
         set({ loading: true, error: null })
         try {
-          const { data } = await api.post<AuthResponse>('/users/register', {
-            name, email, password, role,
+          const { data } = await api.post<AuthResponse>('/auth/register', {
+            name, loginId, email, password,
           })
           localStorage.setItem('ub_token', data.token)
           set({ user: data.user, token: data.token, loading: false })
@@ -95,14 +79,13 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name:        'ub_auth',
-      partialize:  (s) => ({ user: s.user, token: s.token }),
+      name:       'ub_auth',
+      partialize: (s) => ({ user: s.user, token: s.token }),
     }
   )
 )
 
-/* ── Selectors ─────────────────────────────────────────────── */
-export const selectUser      = (s: AuthState) => s.user
-export const selectRole      = (s: AuthState) => s.user?.role ?? null
-export const selectIsAdmin   = (s: AuthState) => s.user?.role === 'admin'
-export const selectLoggedIn  = (s: AuthState) => !!s.token
+export const selectUser     = (s: AuthState) => s.user
+export const selectRole     = (s: AuthState) => s.user?.role ?? null
+export const selectIsAdmin  = (s: AuthState) => s.user?.role === 'ADMIN'
+export const selectLoggedIn = (s: AuthState) => !!s.token

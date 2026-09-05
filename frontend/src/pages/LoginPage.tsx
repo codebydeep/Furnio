@@ -6,43 +6,35 @@ import { useAuthStore } from '@/store/useAuthStore'
 export default function LoginPage() {
   const navigate  = useNavigate()
   const location  = useLocation()
-  const from      = (location.state as any)?.from?.pathname ?? null
+  const from      = (location.state as { from?: { pathname?: string } })?.from?.pathname ?? null
 
   const { login, user, loading, error, clearError } = useAuthStore()
 
-  const [email,    setEmail]    = useState('')
+  const [loginId,  setLoginId]  = useState('')
   const [password, setPassword] = useState('')
   const [showPwd,  setShowPwd]  = useState(false)
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) redirectByRole(user.role)
   }, [user])
 
   function redirectByRole(role: string) {
     if (from) { navigate(from, { replace: true }); return }
-    if (role === 'admin')      navigate('/dashboard/admin',      { replace: true })
-    else if (role === 'accountant') navigate('/dashboard/accountant', { replace: true })
-    else                       navigate('/dashboard/contact',    { replace: true })
+    navigate('/dashboard', { replace: true })
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     clearError()
-    const ok = await login(email, password)
-    if (ok && useAuthStore.getState().user) {
-      redirectByRole(useAuthStore.getState().user!.role)
-    }
+    const ok = await login(loginId, password)
+    if (ok) redirectByRole(useAuthStore.getState().user!.role)
   }
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-        {/* Logo */}
         <Link to="/" className="auth-logo">
-          <div className="auth-logo-mark">
-            <BookOpen size={18} />
-          </div>
+          <div className="auth-logo-mark"><BookOpen size={18} /></div>
           <span className="auth-logo-name">UrbanBooks</span>
         </Link>
 
@@ -51,7 +43,6 @@ export default function LoginPage() {
           <p className="auth-sub">Sign in to your accounting workspace</p>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="auth-error">
             <span>{error}</span>
@@ -60,27 +51,22 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {/* Email */}
           <div className="auth-field">
-            <label className="auth-label" htmlFor="email">Email</label>
+            <label className="auth-label" htmlFor="loginId">Login ID</label>
             <input
-              id="email"
-              type="email"
+              id="loginId"
+              type="text"
               className="auth-input"
-              placeholder="you@urbanfurniture.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              placeholder="your_login_id"
+              value={loginId}
+              onChange={e => setLoginId(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
-          {/* Password */}
           <div className="auth-field">
-            <div className="auth-label-row">
-              <label className="auth-label" htmlFor="password">Password</label>
-              <Link to="/forgot-password" className="auth-link-small">Forgot password?</Link>
-            </div>
+            <label className="auth-label" htmlFor="password">Password</label>
             <div className="auth-input-wrap">
               <input
                 id="password"
@@ -92,12 +78,7 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
               />
-              <button
-                type="button"
-                className="auth-eye"
-                onClick={() => setShowPwd(v => !v)}
-                tabIndex={-1}
-              >
+              <button type="button" className="auth-eye" onClick={() => setShowPwd(v => !v)} tabIndex={-1}>
                 {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
@@ -112,24 +93,21 @@ export default function LoginPage() {
 
         <p className="auth-footer-text">
           Don't have an account?{' '}
-          <Link to="/register" className="auth-link">Create one free</Link>
+          <Link to="/register" className="auth-link">Create one</Link>
         </p>
       </div>
 
-      {/* Right panel — accounting SaaS illustration */}
       <div className="auth-panel">
         <div className="auth-panel-content">
           <div className="auth-panel-badge">Double-entry accurate</div>
-          <h2 className="auth-panel-title">
-            Your complete<br />accounting suite
-          </h2>
+          <h2 className="auth-panel-title">Your complete<br />accounting suite</h2>
           <p className="auth-panel-sub">
             Contacts · Products · Journals · Orders · Reports — all connected.
           </p>
           <div className="auth-panel-stats">
             {[
-              { v: '5',    l: 'Master Modules' },
-              { v: '3',    l: 'Report Types'   },
+              { v: '5',    l: 'Master Modules'  },
+              { v: '3',    l: 'Report Types'    },
               { v: '100%', l: 'Balanced Ledger' },
             ].map(({ v, l }) => (
               <div key={l} className="auth-panel-stat">

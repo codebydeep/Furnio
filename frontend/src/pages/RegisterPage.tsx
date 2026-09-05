@@ -1,41 +1,30 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, BookOpen, ArrowRight, Loader2 } from 'lucide-react'
-import { useAuthStore, type UserRole } from '@/store/useAuthStore'
-
-const ROLES: { value: UserRole; label: string; desc: string }[] = [
-  { value: 'admin',      label: 'Admin',           desc: 'Full access — create, modify, archive, report' },
-  { value: 'accountant', label: 'Invoicing User',  desc: 'Create master data, record transactions, view reports' },
-  { value: 'contact',    label: 'Contact',         desc: 'View own invoices/bills and make payments' },
-]
+import { useAuthStore } from '@/store/useAuthStore'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, user, loading, error, clearError } = useAuthStore()
 
   const [name,    setName]    = useState('')
+  const [loginId, setLoginId] = useState('')
   const [email,   setEmail]   = useState('')
   const [pwd,     setPwd]     = useState('')
   const [confirm, setConfirm] = useState('')
-  const [role,    setRole]    = useState<UserRole>('accountant')
   const [showPwd, setShowPwd] = useState(false)
   const [localErr,setLocalErr]= useState('')
 
   useEffect(() => {
-    if (user) {
-      if (user.role === 'admin')      navigate('/dashboard/admin',      { replace: true })
-      else if (user.role === 'accountant') navigate('/dashboard/accountant', { replace: true })
-      else                            navigate('/dashboard/contact',    { replace: true })
-    }
+    if (user) navigate('/dashboard', { replace: true })
   }, [user, navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLocalErr('')
     clearError()
-    if (pwd !== confirm) { setLocalErr('Passwords do not match'); return }
-    if (pwd.length < 8)  { setLocalErr('Password must be at least 8 characters'); return }
-    await register(name, email, pwd, role)
+    if (pwd !== confirm) { setLocalErr('Passwords do not match.'); return }
+    await register(name, loginId, email, pwd)
   }
 
   const displayError = localErr || error
@@ -43,7 +32,6 @@ export default function RegisterPage() {
   return (
     <div className="auth-page auth-page--register">
       <div className="auth-card auth-card--wide">
-        {/* Logo */}
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark"><BookOpen size={18} /></div>
           <span className="auth-logo-name">UrbanBooks</span>
@@ -62,7 +50,6 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {/* Two-col grid on wide card */}
           <div className="auth-two-col">
             <div className="auth-field">
               <label className="auth-label" htmlFor="name">Full Name</label>
@@ -70,6 +57,14 @@ export default function RegisterPage() {
                 placeholder="Nimesh Pathak"
                 value={name} onChange={e => setName(e.target.value)}
                 required autoComplete="name" />
+            </div>
+
+            <div className="auth-field">
+              <label className="auth-label" htmlFor="loginId">Login ID</label>
+              <input id="loginId" type="text" className="auth-input"
+                placeholder="nimesh_owner"
+                value={loginId} onChange={e => setLoginId(e.target.value)}
+                required autoComplete="username" />
             </div>
 
             <div className="auth-field">
@@ -81,10 +76,18 @@ export default function RegisterPage() {
             </div>
 
             <div className="auth-field">
+              <label className="auth-label" htmlFor="confirm">Confirm Password</label>
+              <input id="confirm" type="password" className="auth-input"
+                placeholder="Repeat password"
+                value={confirm} onChange={e => setConfirm(e.target.value)}
+                required autoComplete="new-password" />
+            </div>
+
+            <div className="auth-field" style={{ gridColumn: '1 / -1' }}>
               <label className="auth-label" htmlFor="reg-pwd">Password</label>
               <div className="auth-input-wrap">
                 <input id="reg-pwd" type={showPwd ? 'text' : 'password'}
-                  className="auth-input" placeholder="Min. 8 characters"
+                  className="auth-input" placeholder="Min. 9 chars, upper + lower + special"
                   value={pwd} onChange={e => setPwd(e.target.value)}
                   required autoComplete="new-password" />
                 <button type="button" className="auth-eye"
@@ -93,32 +96,14 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
-
-            <div className="auth-field">
-              <label className="auth-label" htmlFor="confirm">Confirm Password</label>
-              <input id="confirm" type="password" className="auth-input"
-                placeholder="Repeat password"
-                value={confirm} onChange={e => setConfirm(e.target.value)}
-                required autoComplete="new-password" />
-            </div>
           </div>
 
-          {/* Role selector */}
-          <div className="auth-field">
-            <label className="auth-label">Your Role</label>
-            <div className="auth-role-grid">
-              {ROLES.map(r => (
-                <button
-                  key={r.value}
-                  type="button"
-                  className={`auth-role-card${role === r.value ? ' auth-role-card--active' : ''}`}
-                  onClick={() => setRole(r.value)}
-                >
-                  <span className="auth-role-label">{r.label}</span>
-                  <span className="auth-role-desc">{r.desc}</span>
-                </button>
-              ))}
-            </div>
+          <div className="auth-info-box">
+            <span className="auth-info-label">You are registering as</span>
+            <strong className="auth-info-value">Business Owner (Admin)</strong>
+            <p className="auth-info-desc">
+              Full access — create master data, manage users, record transactions, view reports.
+            </p>
           </div>
 
           <button type="submit" className="auth-submit" disabled={loading}>

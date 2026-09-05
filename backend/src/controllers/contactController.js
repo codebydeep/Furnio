@@ -1,51 +1,8 @@
 import prisma from '../db/prisma.js'
 
-// ---------------------------------------------------------------------------
-// POST /api/contacts
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
-export async function createContact(req, res) {
-  try {
-    const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
-
-    // Prevent duplicate email if provided
-    if (email) {
-      const existing = await prisma.contact.findFirst({ where: { email } })
-      if (existing) {
-        return res.status(409).json({ message: 'A contact with that email already exists.' })
-      }
-    }
-
-    const contact = await prisma.contact.create({
-      data: { name, type, email, mobile, city, state, pincode, profileImage },
-    })
-
-    return res.status(201).json({ message: 'Contact created successfully.', contact })
-  } catch (err) {
-    console.error('[createContact]', err)
-    return res.status(500).json({ message: 'Internal server error.' })
-  }
-}
-
-// ---------------------------------------------------------------------------
-// GET /api/contacts
-// ADMIN, ACCOUNTANT — returns active contacts (archived=false)
-// Query: ?type=CUSTOMER|VENDOR|BOTH  &  ?archived=true  (admin can view archived)
-// ---------------------------------------------------------------------------
 export async function getAllContacts(req, res) {
   try {
-    const { type, archived } = req.query
-
-    const where = {}
-    if (type)                     where.type     = type
-    if (archived === 'true')      where.archived = true
-    else                          where.archived = false
-
-    const contacts = await prisma.contact.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    })
-
+    const contacts = await prisma.contact.findMany({ orderBy: { createdAt: 'desc' } })
     return res.status(200).json(contacts)
   } catch (err) {
     console.error('[getAllContacts]', err)
@@ -53,21 +10,13 @@ export async function getAllContacts(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/contacts/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
 export async function getContactById(req, res) {
   try {
-    const contact = await prisma.contact.findUnique({
-      where: { id: req.params.id },
-      include: { user: { select: { id: true, email: true, role: true } } },
-    })
+    const id = parseInt(req.params.id, 10)
+    if (isNaN(id)) return res.status(400).json({ message: 'Invalid contact ID.' })
 
-    if (!contact) {
-      return res.status(404).json({ message: 'Contact not found.' })
-    }
-
+    const contact = await prisma.contact.findUnique({ where: { id }, include: { user: { select: { id: true, loginId: true, email: true, role: true } } } })
+    if (!contact) return res.status(404).json({ message: 'Contact not found.' })
     return res.status(200).json(contact)
   } catch (err) {
     console.error('[getContactById]', err)
@@ -75,36 +24,37 @@ export async function getContactById(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id
-// ADMIN, ACCOUNTANT
-// ---------------------------------------------------------------------------
+export async function createContact(req, res) {
+  try {
+    const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
+    const contact = await prisma.contact.create({ data: { name, type, email, mobile, city, state, pincode, profileImage } })
+    return res.status(201).json({ message: 'Contact created successfully.', contact })
+  } catch (err) {
+    console.error('[createContact]', err)
+    return res.status(500).json({ message: 'Internal server error.' })
+  }
+}
+
 export async function updateContact(req, res) {
   try {
-    const { id } = req.params
+    const id = parseInt(req.params.id, 10)
+    if (isNaN(id)) return res.status(400).json({ message: 'Invalid contact ID.' })
 
     const existing = await prisma.contact.findUnique({ where: { id } })
-    if (!existing) {
-      return res.status(404).json({ message: 'Contact not found.' })
-    }
+    if (!existing) return res.status(404).json({ message: 'Contact not found.' })
 
-    if (existing.archived) {
-      return res.status(400).json({ message: 'Cannot update an archived contact.' })
-    }
+    const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
+    const data = {}
+    if (name         !== undefined) data.name         = name
+    if (type         !== undefined) data.type         = type
+    if (email        !== undefined) data.email        = email
+    if (mobile       !== undefined) data.mobile       = mobile
+    if (city         !== undefined) data.city         = city
+    if (state        !== undefined) data.state        = state
+    if (pincode      !== undefined) data.pincode      = pincode
+    if (profileImage !== undefined) data.profileImage = profileImage
 
-    const { email } = req.body
-    if (email && email !== existing.email) {
-      const conflict = await prisma.contact.findFirst({ where: { email } })
-      if (conflict) {
-        return res.status(409).json({ message: 'Email is already used by another contact.' })
-      }
-    }
-
-    const contact = await prisma.contact.update({
-      where: { id },
-      data: req.body,
-    })
-
+    const contact = await prisma.contact.update({ where: { id }, data })
     return res.status(200).json({ message: 'Contact updated successfully.', contact })
   } catch (err) {
     console.error('[updateContact]', err)
@@ -112,56 +62,18 @@ export async function updateContact(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id/archive  — soft delete (ADMIN only)
-// ---------------------------------------------------------------------------
-export async function archiveContact(req, res) {
+export async function deleteContact(req, res) {
   try {
-    const { id } = req.params
+    const id = parseInt(req.params.id, 10)
+    if (isNaN(id)) return res.status(400).json({ message: 'Invalid contact ID.' })
 
     const existing = await prisma.contact.findUnique({ where: { id } })
-    if (!existing) {
-      return res.status(404).json({ message: 'Contact not found.' })
-    }
-    if (existing.archived) {
-      return res.status(400).json({ message: 'Contact is already archived.' })
-    }
+    if (!existing) return res.status(404).json({ message: 'Contact not found.' })
 
-    const contact = await prisma.contact.update({
-      where: { id },
-      data: { archived: true },
-    })
-
-    return res.status(200).json({ message: 'Contact archived successfully.', contact })
+    await prisma.contact.delete({ where: { id } })
+    return res.status(200).json({ message: 'Contact deleted successfully.' })
   } catch (err) {
-    console.error('[archiveContact]', err)
-    return res.status(500).json({ message: 'Internal server error.' })
-  }
-}
-
-// ---------------------------------------------------------------------------
-// PATCH /api/contacts/:id/unarchive  — restore (ADMIN only)
-// ---------------------------------------------------------------------------
-export async function unarchiveContact(req, res) {
-  try {
-    const { id } = req.params
-
-    const existing = await prisma.contact.findUnique({ where: { id } })
-    if (!existing) {
-      return res.status(404).json({ message: 'Contact not found.' })
-    }
-    if (!existing.archived) {
-      return res.status(400).json({ message: 'Contact is not archived.' })
-    }
-
-    const contact = await prisma.contact.update({
-      where: { id },
-      data: { archived: false },
-    })
-
-    return res.status(200).json({ message: 'Contact restored successfully.', contact })
-  } catch (err) {
-    console.error('[unarchiveContact]', err)
+    console.error('[deleteContact]', err)
     return res.status(500).json({ message: 'Internal server error.' })
   }
 }

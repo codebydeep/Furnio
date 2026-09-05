@@ -5,7 +5,7 @@
  *   import { useAuthStore, useContactStore } from '@/store'
  */
 export { useAuthStore, selectUser, selectRole, selectIsAdmin, selectLoggedIn } from './useAuthStore'
-export type { AuthUser, UserRole }      from './useAuthStore'
+export type { AuthUser, UserRole } from './useAuthStore'
 
 export { useContactStore }              from './useContactStore'
 export type { Contact, ContactType, ContactPayload } from './useContactStore'

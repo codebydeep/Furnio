@@ -1,83 +1,57 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/authenticate.js'
 import { authorize } from '../middleware/authorize.js'
-import { CAN_MANAGE_MASTER, CAN_MANAGE_USERS } from '../config/roles.js'
+import { CAN_MANAGE_MASTER } from '../config/roles.js'
+import { validate, contactSchema, productSchema, accountSchema, journalSchema, analyticAccountSchema, budgetSchema } from '../validators/masterValidators.js'
 
-import {
-  createContact, getAllContacts, getContactById,
-  updateContact, archiveContact, unarchiveContact,
-} from '../controllers/contactController.js'
+import { getAllContacts, getContactById, createContact, updateContact, deleteContact } from '../controllers/contactController.js'
+import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../controllers/productController.js'
+import { getAllAccounts, getAccountById, createAccount, updateAccount, deleteAccount } from '../controllers/accountController.js'
+import { getAllJournals, getJournalById, createJournal, updateJournal, deleteJournal } from '../controllers/journalController.js'
+import { getAllAnalyticAccounts, getAnalyticAccountById, createAnalyticAccount, updateAnalyticAccount, deleteAnalyticAccount } from '../controllers/analyticAccountController.js'
+import { getAllBudgets, getBudgetById, createBudget, updateBudget, deleteBudget } from '../controllers/budgetController.js'
 
-import {
-  createProduct, getAllProducts, getProductById,
-  updateProduct, archiveProduct, unarchiveProduct,
-} from '../controllers/productController.js'
+const master = authenticate
+const staff  = [authenticate, authorize(...CAN_MANAGE_MASTER)]
 
-import {
-  createAccount, getAllAccounts, getAccountById,
-  updateAccount, archiveAccount, unarchiveAccount,
-} from '../controllers/accountController.js'
+export const contactRouter = Router()
+contactRouter.get   ('/',    master,   getAllContacts)
+contactRouter.get   ('/:id', master,   getContactById)
+contactRouter.post  ('/',    ...staff, validate(contactSchema), createContact)
+contactRouter.patch ('/:id', ...staff, validate(contactSchema.partial()), updateContact)
+contactRouter.delete('/:id', ...staff, deleteContact)
 
-import {
-  createJournal, getAllJournals, getJournalById,
-  updateJournal, deleteJournal,
-} from '../controllers/journalController.js'
+export const productRouter = Router()
+productRouter.get   ('/',    master,   getAllProducts)
+productRouter.get   ('/:id', master,   getProductById)
+productRouter.post  ('/',    ...staff, validate(productSchema), createProduct)
+productRouter.patch ('/:id', ...staff, validate(productSchema.partial()), updateProduct)
+productRouter.delete('/:id', ...staff, deleteProduct)
 
-import {
-  createContactSchema, updateContactSchema,
-  createProductSchema, updateProductSchema,
-  createAccountSchema, updateAccountSchema,
-  createJournalSchema, updateJournalSchema,
-  validate,
-} from '../validators/masterValidators.js'
+export const accountRouter = Router()
+accountRouter.get   ('/',    master,   getAllAccounts)
+accountRouter.get   ('/:id', master,   getAccountById)
+accountRouter.post  ('/',    ...staff, validate(accountSchema), createAccount)
+accountRouter.patch ('/:id', ...staff, validate(accountSchema.partial()), updateAccount)
+accountRouter.delete('/:id', ...staff, deleteAccount)
 
-const router = Router()
+export const journalRouter = Router()
+journalRouter.get   ('/',    master,   getAllJournals)
+journalRouter.get   ('/:id', master,   getJournalById)
+journalRouter.post  ('/',    ...staff, validate(journalSchema), createJournal)
+journalRouter.patch ('/:id', ...staff, validate(journalSchema.partial()), updateJournal)
+journalRouter.delete('/:id', ...staff, deleteJournal)
 
+export const analyticAccountRouter = Router()
+analyticAccountRouter.get   ('/',    master,   getAllAnalyticAccounts)
+analyticAccountRouter.get   ('/:id', master,   getAnalyticAccountById)
+analyticAccountRouter.post  ('/',    ...staff, validate(analyticAccountSchema), createAnalyticAccount)
+analyticAccountRouter.patch ('/:id', ...staff, validate(analyticAccountSchema.partial()), updateAnalyticAccount)
+analyticAccountRouter.delete('/:id', ...staff, deleteAnalyticAccount)
 
-router.use(authenticate)
-
-
-router.post  ('/',               authorize(...CAN_MANAGE_MASTER), validate(createContactSchema), createContact)
-router.get   ('/',               authorize(...CAN_MANAGE_MASTER), getAllContacts)
-router.get   ('/:id',            authorize(...CAN_MANAGE_MASTER), getContactById)
-router.patch ('/:id',            authorize(...CAN_MANAGE_MASTER), validate(updateContactSchema), updateContact)
-router.patch ('/:id/archive',    authorize(...CAN_MANAGE_USERS),  archiveContact)    // ADMIN only
-router.patch ('/:id/unarchive',  authorize(...CAN_MANAGE_USERS),  unarchiveContact)  // ADMIN only
-
-export const contactRouter = router
-
-const productRouter = Router()
-productRouter.use(authenticate)
-
-productRouter.post  ('/',              authorize(...CAN_MANAGE_MASTER), validate(createProductSchema), createProduct)
-productRouter.get   ('/',              authorize(...CAN_MANAGE_MASTER), getAllProducts)
-productRouter.get   ('/:id',           authorize(...CAN_MANAGE_MASTER), getProductById)
-productRouter.patch ('/:id',           authorize(...CAN_MANAGE_MASTER), validate(updateProductSchema), updateProduct)
-productRouter.patch ('/:id/archive',   authorize(...CAN_MANAGE_USERS),  archiveProduct)
-productRouter.patch ('/:id/unarchive', authorize(...CAN_MANAGE_USERS),  unarchiveProduct)
-
-export { productRouter }
-
-
-const accountRouter = Router()
-accountRouter.use(authenticate)
-
-accountRouter.post  ('/',              authorize(...CAN_MANAGE_MASTER), validate(createAccountSchema), createAccount)
-accountRouter.get   ('/',              authorize(...CAN_MANAGE_MASTER), getAllAccounts)
-accountRouter.get   ('/:id',           authorize(...CAN_MANAGE_MASTER), getAccountById)
-accountRouter.patch ('/:id',           authorize(...CAN_MANAGE_MASTER), validate(updateAccountSchema), updateAccount)
-accountRouter.patch ('/:id/archive',   authorize(...CAN_MANAGE_USERS),  archiveAccount)
-accountRouter.patch ('/:id/unarchive', authorize(...CAN_MANAGE_USERS),  unarchiveAccount)
-
-export { accountRouter }
-
-const journalRouter = Router()
-journalRouter.use(authenticate)
-
-journalRouter.post  ('/',    authorize(...CAN_MANAGE_MASTER), validate(createJournalSchema), createJournal)
-journalRouter.get   ('/',    authorize(...CAN_MANAGE_MASTER), getAllJournals)
-journalRouter.get   ('/:id', authorize(...CAN_MANAGE_MASTER), getJournalById)
-journalRouter.patch ('/:id', authorize(...CAN_MANAGE_MASTER), validate(updateJournalSchema), updateJournal)
-journalRouter.delete('/:id', authorize(...CAN_MANAGE_USERS),  deleteJournal)  // ADMIN only
-
-export { journalRouter }
+export const budgetRouter = Router()
+budgetRouter.get   ('/',    master,   getAllBudgets)
+budgetRouter.get   ('/:id', master,   getBudgetById)
+budgetRouter.post  ('/',    ...staff, validate(budgetSchema), createBudget)
+budgetRouter.patch ('/:id', ...staff, validate(budgetSchema.partial()), updateBudget)
+budgetRouter.delete('/:id', ...staff, deleteBudget)
