@@ -1,11 +1,10 @@
-function App() {
+import { Route, Routes } from 'react-router-dom'
+import LandingPage from '@/pages/LandingPage'
+
+export default function App() {
   return (
-    <>
-    <div>
-      <h1>Furnio</h1>
-    </div>
-    </>
+    <Routes>
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
   )
 }
-
-export default App
