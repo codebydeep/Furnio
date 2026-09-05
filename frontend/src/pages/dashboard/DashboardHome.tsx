@@ -16,8 +16,8 @@ import { api } from '@/lib/api'
 
 interface PLData   { totalIncome: number; totalExpenses: number; netProfit: number }
 interface BSData   { totalAssets: number; totalLiabilities: number; totalCapital: number }
-interface BudgetLine { name: string; plannedAmount: number; analyticAccount: string; type: string }
-interface Invoice  { id: number; invoiceDate: string; totalAmount: string; customer: { name: string } }
+interface BudgetLine { id: number; name: string; totalCommitted: number; analyticAccount: string; analyticType: string }
+interface Invoice  { id: number; invoiceDate: string; amount: string; so?: { customer?: { name: string } } }
 
 function KpiCard({ label, value, sub, trend, trendUp, icon: Icon, accent }: {
   label: string; value: string; sub: string
@@ -81,11 +81,11 @@ export default function DashboardHome() {
       api.get<PLData>('/reports/profit-loss'),
       api.get<BSData>('/reports/balance-sheet'),
       api.get<{ budgets: BudgetLine[] }>('/reports/budget'),
-      api.get<Invoice[]>('/invoices'),
+      api.get<Invoice[]>('/customer-invoices'),
     ]).then(([plRes, bsRes, budgetRes, invRes]) => {
       if (plRes.status     === 'fulfilled') setPl(plRes.value.data)
       if (bsRes.status     === 'fulfilled') setBs(bsRes.value.data)
-      if (budgetRes.status === 'fulfilled') setBudgets(budgetRes.value.data.budgets ?? [])
+      if (budgetRes.status === 'fulfilled') setBudgets(budgetRes.value.data.budgets?.slice(0, 5) ?? [])
       if (invRes.status    === 'fulfilled') setInvoices((invRes.value.data as unknown as Invoice[]).slice(0, 6))
       setLoading(false)
     })
@@ -173,7 +173,7 @@ export default function DashboardHome() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   {budgets.slice(0, 5).map((b, i) => (
-                    <BudgetRow key={b.name} name={b.name} planned={b.plannedAmount} color={ACCENT_COLORS[i % ACCENT_COLORS.length]} />
+                    <BudgetRow key={b.name} name={b.name} planned={b.totalCommitted} color={ACCENT_COLORS[i % ACCENT_COLORS.length]} />
                   ))}
                   <Link to="/reports/budget" className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--accent)] hover:underline mt-4">
                     Full budget report <ArrowRight size={12} />
@@ -209,16 +209,16 @@ export default function DashboardHome() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px]">{inv.customer?.name?.[0] ?? '?'}</AvatarFallback>
+                              <AvatarFallback className="text-[10px]">{inv.so?.customer?.name?.[0] ?? '?'}</AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{inv.customer?.name ?? '—'}</span>
+                            <span className="text-sm">{inv.so?.customer?.name ?? '—'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-[var(--text-muted)]">
                           {new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </TableCell>
                         <TableCell className="font-mono tabular-nums font-semibold">
-                          ₹{Number(inv.totalAmount).toLocaleString('en-IN')}
+                          ₹{Number(inv.amount).toLocaleString('en-IN')}
                         </TableCell>
                         <TableCell className="pr-5">
                           <Link to="/transactions/invoice" className="text-xs text-[var(--accent)] hover:underline">View</Link>

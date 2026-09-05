@@ -109,6 +109,12 @@ export interface Payment {
   vendorBillId:      number | null
   customerInvoiceId: number | null
   journalEntryId:    number | null
+  // display helpers used by PaymentPage
+  type:              'inbound' | 'outbound'
+  method:            'bank' | 'cash'
+  invoiceId?:        number | null
+  billId?:           number | null
+  reference?:        string
 }
 
 /* ── Helpers ─────────────────────────────────────────────────── */
@@ -152,7 +158,8 @@ function normBill(raw: any): VendorBill {
     lines,
     total,
     amountDue:   raw.paymentStatus === 'PAID' ? 0 : total - totalPaid,
-    status:      raw.paymentStatus === 'PAID' ? 'done' : raw.paymentStatus === 'PARTIAL' ? 'confirmed' : 'draft',
+    paymentStatus: raw.paymentStatus,
+    status:        String(raw.paymentStatus ?? 'UNPAID').toLowerCase(),
     paymentId:   raw.payments?.[0]?.id,
   }
 }
@@ -204,10 +211,27 @@ function normInvoice(raw: any): CustomerInvoice {
     taxTotal,
     grandTotal:   total,
     amountDue:    raw.paymentStatus === 'PAID' ? 0 : total - totalPaid,
-    status:       raw.paymentStatus === 'PAID' ? 'done' : raw.paymentStatus === 'PARTIAL' ? 'confirmed' : 'draft',
+    paymentStatus: raw.paymentStatus,
+    status:        String(raw.paymentStatus ?? 'UNPAID').toLowerCase(),
     paymentId:    raw.payments?.[0]?.id,
     invoiceDate:  raw.invoiceDate?.slice(0, 10) ?? '',
     dueDate:      raw.dueDate?.slice(0, 10) ?? '',
+  }
+}
+
+function normPayment(raw: any): Payment {
+  const method = raw.journal?.type === 'CASH' ? 'cash' : 'bank'
+  return {
+    ...raw,
+    amount:     Number(raw.amount),
+    date:       raw.date?.slice(0, 10) ?? '',
+    type:       raw.direction === 'RECEIVED' ? 'inbound' : 'outbound',
+    method,
+    invoiceId:  raw.customerInvoiceId,
+    billId:     raw.vendorBillId,
+    reference:  raw.customerInvoice?.so?.soNumber
+      ?? raw.vendorBill?.po?.poNumber
+      ?? '',
   }
 }
 
@@ -227,7 +251,7 @@ interface TransactionState {
   createBillFromPO:     (poId: number) => Promise<VendorBill | null>
 
   fetchVendorBills: () => Promise<void>
-  payBill:          (billId: number, payload: { journalId: number; amount: number; date?: string }) => Promise<boolean>
+  payBill:          (billId: number, payload: { journalId?: number; journalType?: 'BANK' | 'CASH'; amount: number; date?: string }) => Promise<boolean>
 
   fetchSalesOrders:  () => Promise<void>
   createSalesOrder:  (payload: { customerId: number; soDate?: string; items: { productId: number; quantity: number; unitPrice: number; taxRate?: number; analyticAccountId?: number }[] }) => Promise<SalesOrder | null>
@@ -235,7 +259,7 @@ interface TransactionState {
   createInvoice:     (soId: number) => Promise<CustomerInvoice | null>
 
   fetchInvoices:  () => Promise<void>
-  payInvoice:     (invoiceId: number, payload: { journalId: number; amount: number; date?: string }) => Promise<boolean>
+  payInvoice:     (invoiceId: number, payload: { journalId?: number; journalType?: 'BANK' | 'CASH'; amount: number; date?: string }) => Promise<boolean>
 
   fetchPayments:  (params?: { from?: string; to?: string }) => Promise<void>
 
@@ -387,11 +411,11 @@ export const useTransactionStore = create<TransactionState>((set) => ({
   /* ── Payments ─────────────────────────────────────────────── */
   fetchPayments: async (params) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<Payment[]>(() =>
+    const [data, err] = await request<any[]>(() =>
       api.get('/payments', { params })
     )
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ payments: data ?? [], loading: false })
+    set({ payments: (data ?? []).map(normPayment), loading: false })
   },
 
   clearError: () => set({ error: null }),

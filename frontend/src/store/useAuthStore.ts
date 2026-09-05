@@ -46,7 +46,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await api.post<AuthResponse>('/auth/login', { loginId, password })
           localStorage.setItem('ub_token', data.token)
-          set({ user: data.user, token: data.token, loading: false })
+          const user = { ...data.user, role: data.user.role?.toUpperCase() as UserRole }
+          set({ user, token: data.token, loading: false })
           return true
         } catch (err) {
           const e = err as ApiError
@@ -62,7 +63,8 @@ export const useAuthStore = create<AuthState>()(
             name, loginId, email, password,
           })
           localStorage.setItem('ub_token', data.token)
-          set({ user: data.user, token: data.token, loading: false })
+          const user = { ...data.user, role: data.user.role?.toUpperCase() as UserRole }
+          set({ user, token: data.token, loading: false })
           return true
         } catch (err) {
           const e = err as ApiError

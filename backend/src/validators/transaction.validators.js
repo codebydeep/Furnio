@@ -24,16 +24,18 @@ export const salesOrderSchema = z.object({
 })
 
 export const vendorBillPaymentSchema = z.object({
-  journalId: z.number().int().positive({ message: 'Journal (Bank/Cash) is required.' }),
-  amount:    z.number().positive({ message: 'Amount must be positive.' }),
-  date:      z.string().optional(),
-})
+  journalId:   z.number().int().positive().optional(),
+  journalType: z.enum(['BANK', 'CASH']).optional(),
+  amount:      z.number().positive({ message: 'Amount must be positive.' }),
+  date:        z.string().optional(),
+}).refine(d => d.journalId || d.journalType, { message: 'Journal (Bank/Cash) is required.' })
 
 export const invoicePaymentSchema = z.object({
-  journalId: z.number().int().positive({ message: 'Journal (Bank/Cash) is required.' }),
-  amount:    z.number().positive({ message: 'Amount must be positive.' }),
-  date:      z.string().optional(),
-})
+  journalId:   z.number().int().positive().optional(),
+  journalType: z.enum(['BANK', 'CASH']).optional(),
+  amount:      z.number().positive({ message: 'Amount must be positive.' }),
+  date:        z.string().optional(),
+}).refine(d => d.journalId || d.journalType, { message: 'Journal (Bank/Cash) is required.' })
 
 const journalItemSchema = z.object({
   accountId:         z.number().int().positive(),

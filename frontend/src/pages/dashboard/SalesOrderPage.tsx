@@ -187,13 +187,15 @@ export default function SalesOrderPage() {
     if (lines.some(l => !l.productId)) { setFormErr('All lines must have a product.'); return }
     setSaving(true)
     try {
-      const customer = customers.find(c => c.id === customerId)
       await createSalesOrder({
         customerId,
-        customerName: customer?.name ?? '',
-        date,
-        lines: lines.map(l => ({ ...l, subtotal: calcSubtotal(l) })),
-        total: subTotal,
+        soDate: date,
+        items: lines.map(l => ({
+          productId: l.productId,
+          quantity:  l.quantity,
+          unitPrice: l.unitPrice,
+          taxRate:   l.tax,
+        })),
       })
       setShowForm(false)
       setCustomerId(0); setDate(new Date().toISOString().slice(0, 10))

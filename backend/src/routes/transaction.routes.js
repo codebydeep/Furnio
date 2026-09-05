@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate } from '../middleware/auth.middleware.js'
-import { authorize, authorizeSelf } from '../middleware/authorize.middleware.js'
+import { authorize } from '../middleware/authorize.middleware.js'
 import { validate } from '../validators/master.validators.js'
 import {
   purchaseOrderSchema,
@@ -85,7 +85,7 @@ customerInvoiceRouter.get('/my',           authAll, getMyInvoices)
 customerInvoiceRouter.get('/my-bills',     authAll, getMyBills)
 customerInvoiceRouter.get('/',             ...staff, getAllCustomerInvoices)
 customerInvoiceRouter.get('/:id',          authAll, getCustomerInvoiceById)
-customerInvoiceRouter.post('/:id/payments',...staff, validate(invoicePaymentSchema), registerInvoicePayment)
+customerInvoiceRouter.post('/:id/payments', authAll, validate(invoicePaymentSchema), registerInvoicePayment)
 
 /* ── Payments ────────────────────────────────────────────────── */
 export const paymentRouter = Router()

@@ -3,13 +3,13 @@ import {
   CreditCard, Loader2, ArrowDownCircle, ArrowUpCircle,
   Banknote, Building2, Filter,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { useTransactionStore, type Payment } from '@/store'
+import { useTransactionStore } from '@/store'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n)
@@ -18,10 +18,10 @@ function fmt(n: number) {
 export default function PaymentPage() {
   const { payments, loading, error, fetchPayments } = useTransactionStore()
 
-  const [from,        setFrom]        = useState('')
-  const [to,          setTo]          = useState('')
-  const [typeFilter,  setTypeFilter]  = useState<'all' | 'inbound' | 'outbound'>('all')
-  const [methodFilter, setMethodFilter] = useState<'all' | 'bank' | 'cash'>('all')
+  const [from,           setFrom]           = useState('')
+  const [to,             setTo]             = useState('')
+  const [dirFilter,      setDirFilter]      = useState<'all' | 'RECEIVED' | 'SEND'>('all')
+  const [journalFilter,  setJournalFilter]  = useState<'all' | 'BANK' | 'CASH'>('all')
 
   useEffect(() => { fetchPayments() }, []) // eslint-disable-line
 
@@ -31,21 +31,21 @@ export default function PaymentPage() {
   }
 
   const filtered = payments.filter(p => {
-    const typeOk   = typeFilter   === 'all' || p.type   === typeFilter
-    const methodOk = methodFilter === 'all' || p.method === methodFilter
-    return typeOk && methodOk
+    const dirOk     = dirFilter    === 'all' || p.direction         === dirFilter
+    const journalOk = journalFilter === 'all' || (p.journal?.type ?? '') === journalFilter
+    return dirOk && journalOk
   })
 
-  const totalInbound  = filtered.filter(p => p.type === 'inbound').reduce((s, p) => s + p.amount, 0)
-  const totalOutbound = filtered.filter(p => p.type === 'outbound').reduce((s, p) => s + p.amount, 0)
-  const net = totalInbound - totalOutbound
+  const totalReceived = filtered.filter(p => p.direction === 'RECEIVED').reduce((s, p) => s + Number(p.amount), 0)
+  const totalSent     = filtered.filter(p => p.direction === 'SEND').reduce((s, p) => s + Number(p.amount), 0)
+  const net = totalReceived - totalSent
 
   return (
     <div className="db-page">
       <div className="db-page-header">
         <div>
           <h1 className="db-page-title">Payments</h1>
-          <p className="db-page-sub">All inbound and outbound payment records.</p>
+          <p className="db-page-sub">All inbound (received) and outbound (sent) payment records.</p>
         </div>
       </div>
 
@@ -55,18 +55,18 @@ export default function PaymentPage() {
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
               <ArrowDownCircle size={15} className="text-green-400" />
-              <p className="text-xs text-[var(--text-muted)]">Total Inbound</p>
+              <p className="text-xs text-[var(--text-muted)]">Total Received</p>
             </div>
-            <p className="text-2xl font-bold text-green-400">{fmt(totalInbound)}</p>
+            <p className="text-2xl font-bold text-green-400">{fmt(totalReceived)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
               <ArrowUpCircle size={15} className="text-red-400" />
-              <p className="text-xs text-[var(--text-muted)]">Total Outbound</p>
+              <p className="text-xs text-[var(--text-muted)]">Total Sent</p>
             </div>
-            <p className="text-2xl font-bold text-red-400">{fmt(totalOutbound)}</p>
+            <p className="text-2xl font-bold text-red-400">{fmt(totalSent)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -86,13 +86,11 @@ export default function PaymentPage() {
           <form onSubmit={handleFilter} className="flex flex-wrap items-end gap-3">
             <div className="auth-field mb-0">
               <label className="auth-label">From Date</label>
-              <input type="date" className="auth-input" value={from}
-                onChange={e => setFrom(e.target.value)} />
+              <input type="date" className="auth-input" value={from} onChange={e => setFrom(e.target.value)} />
             </div>
             <div className="auth-field mb-0">
               <label className="auth-label">To Date</label>
-              <input type="date" className="auth-input" value={to}
-                onChange={e => setTo(e.target.value)} />
+              <input type="date" className="auth-input" value={to} onChange={e => setTo(e.target.value)} />
             </div>
             <Button type="submit" size="sm" variant="outline" className="gap-1.5 mb-0.5">
               <Filter size={13} /> Apply
@@ -108,28 +106,28 @@ export default function PaymentPage() {
       {/* ── Filter Pills ─────────────────────────────── */}
       <div className="flex flex-wrap gap-2 mb-3">
         <div className="flex gap-1">
-          {(['all', 'inbound', 'outbound'] as const).map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors capitalize ${
-                typeFilter === t
+          {(['all', 'RECEIVED', 'SEND'] as const).map(d => (
+            <button key={d} onClick={() => setDirFilter(d)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                dirFilter === d
                   ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]'
               }`}>
-              {t}
+              {d === 'all' ? 'All' : d === 'RECEIVED' ? 'Received' : 'Sent'}
             </button>
           ))}
         </div>
         <div className="flex gap-1">
-          {(['all', 'bank', 'cash'] as const).map(m => (
-            <button key={m} onClick={() => setMethodFilter(m)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors capitalize ${
-                methodFilter === m
+          {(['all', 'BANK', 'CASH'] as const).map(m => (
+            <button key={m} onClick={() => setJournalFilter(m)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                journalFilter === m
                   ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]'
               }`}>
-              {m === 'bank' ? <><Building2 size={10} className="inline mr-1" />Bank</>
-               : m === 'cash' ? <><Banknote size={10} className="inline mr-1" />Cash</>
-               : 'All Methods'}
+              {m === 'BANK' ? <><Building2 size={10} className="inline mr-1" />Bank</>
+               : m === 'CASH' ? <><Banknote size={10} className="inline mr-1" />Cash</>
+               : 'All'}
             </button>
           ))}
         </div>
@@ -137,7 +135,6 @@ export default function PaymentPage() {
 
       {error && <div className="auth-error mb-3"><span>{error}</span></div>}
 
-      {/* ── Table ───────────────────────────────────── */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -154,12 +151,10 @@ export default function PaymentPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-5">#</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Method</TableHead>
+                  <TableHead>Direction</TableHead>
+                  <TableHead>Journal</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Reference</TableHead>
                   <TableHead>Linked To</TableHead>
-                  <TableHead className="text-right">Journal Entry</TableHead>
                   <TableHead className="text-right pr-5">Amount</TableHead>
                 </TableRow>
               </TableHeader>
@@ -169,34 +164,34 @@ export default function PaymentPage() {
                     <TableCell className="pl-5 font-mono text-xs text-[var(--text-muted)]">#{p.id}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                        p.type === 'inbound'
+                        p.direction === 'RECEIVED'
                           ? 'bg-green-500/10 text-green-400 border-green-500/20'
                           : 'bg-red-500/10 text-red-400 border-red-500/20'
                       }`}>
-                        {p.type === 'inbound'
+                        {p.direction === 'RECEIVED'
                           ? <ArrowDownCircle size={10} />
                           : <ArrowUpCircle size={10} />}
-                        {p.type}
+                        {p.direction === 'RECEIVED' ? 'Received' : 'Sent'}
                       </span>
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                        {p.method === 'bank' ? <Building2 size={11} /> : <Banknote size={11} />}
-                        {p.method}
+                        {p.journal?.type === 'BANK' ? <Building2 size={11} /> : <Banknote size={11} />}
+                        {p.journal?.name ?? '—'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs text-[var(--text-muted)]">{p.date}</TableCell>
-                    <TableCell className="text-xs font-mono text-[var(--text-muted)]">{p.reference || '—'}</TableCell>
                     <TableCell className="text-xs text-[var(--text-muted)]">
-                      {p.invoiceId ? `Invoice #${p.invoiceId}` : p.billId ? `Bill #${p.billId}` : '—'}
+                      {p.date ? new Date(p.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                     </TableCell>
-                    <TableCell className="text-right text-xs font-mono text-[var(--text-muted)]">
-                      #{p.journalEntryId}
+                    <TableCell className="text-xs text-[var(--text-muted)]">
+                      {p.customerInvoiceId ? `Invoice #${p.customerInvoiceId}`
+                        : p.vendorBillId   ? `Bill #${p.vendorBillId}`
+                        : '—'}
                     </TableCell>
                     <TableCell className={`text-right pr-5 text-sm font-bold ${
-                      p.type === 'inbound' ? 'text-green-400' : 'text-red-400'
+                      p.direction === 'RECEIVED' ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {p.type === 'outbound' ? '−' : '+'}{fmt(p.amount)}
+                      {p.direction === 'SEND' ? '−' : '+'}{fmt(Number(p.amount))}
                     </TableCell>
                   </TableRow>
                 ))}

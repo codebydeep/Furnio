@@ -89,7 +89,7 @@ accountRouter.patch ('/:id', ...admin, updateAccount)
 
 /* ── Journals ────────────────────────────────────────────────── */
 export const journalRouter = Router()
-journalRouter.get   ('/',    ...staff, getAllJournals)
+journalRouter.get   ('/',    auth, getAllJournals)
 journalRouter.get   ('/:id', ...staff, getJournalById)
 journalRouter.post  ('/',    ...admin, validate(journalSchema), createJournal)
 journalRouter.patch ('/:id', ...admin, updateJournal)

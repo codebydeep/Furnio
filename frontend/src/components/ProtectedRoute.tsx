@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children, roles }: Props) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (roles && !roles.includes(user.role)) {
+  if (roles && !roles.includes(user.role?.toUpperCase() as UserRole)) {
     return <Navigate to="/unauthorized" replace />
   }
 

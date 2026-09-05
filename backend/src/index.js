@@ -28,17 +28,24 @@ const app  = express()
 const port = process.env.PORT || 3000
 
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
-  .split(',')
-  .map(o => o.trim())
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  ...(process.env.CLIENT_URL ?? '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean),
+]
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    // Allow requests with no origin (curl, Postman, mobile)
+    if (!origin) return cb(null, true)
+    if (allowedOrigins.includes(origin)) return cb(null, true)
     cb(new Error(`CORS: origin ${origin} not allowed`))
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 

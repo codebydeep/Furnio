@@ -4,7 +4,8 @@ export function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body)
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({ field: e.path.join('.'), message: e.message }))
+      const raw = result.error.issues ?? result.error.errors ?? []
+      const errors = raw.map((e) => ({ field: e.path.join('.'), message: e.message }))
       return res.status(400).json({ message: 'Validation failed.', errors })
     }
     req.body = result.data
@@ -21,6 +22,9 @@ export const contactSchema = z.object({
   state:        z.string().optional(),
   pincode:      z.string().optional(),
   profileImage: z.string().optional(),
+  createPortalLogin: z.boolean().optional(),
+  loginId:      z.string().min(4).max(20).regex(/^[a-zA-Z0-9_]+$/).optional(),
+  password:     z.string().min(9).optional(),
 })
 
 export const productSchema = z.object({

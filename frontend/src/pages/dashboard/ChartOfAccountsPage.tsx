@@ -1,50 +1,49 @@
 import { useEffect, useState } from 'react'
-import {
-  BookMarked, Plus, X, Loader2, Search,
-  Archive, RefreshCw, Pencil,
-} from 'lucide-react'
+import { BookMarked, Plus, X, Loader2, Search, Pencil } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { useAccountStore, type Account, type AccountPayload, type AccountType } from '@/store'
+import { useAccountStore, type Account, type AccountType } from '@/store'
 
 const TYPE_COLORS: Record<AccountType, string> = {
-  asset:     'bg-blue-500/15   text-blue-400   border-blue-500/30',
-  liability: 'bg-red-500/15    text-red-400    border-red-500/30',
-  income:    'bg-green-500/15  text-green-400  border-green-500/30',
-  expense:   'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  capital:   'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  ASSET:          'bg-blue-500/15    text-blue-400    border-blue-500/30',
+  LIABILITY:      'bg-red-500/15     text-red-400     border-red-500/30',
+  INCOME:         'bg-green-500/15   text-green-400   border-green-500/30',
+  REVENUE:        'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  EXPENSE:        'bg-orange-500/15  text-orange-400  border-orange-500/30',
+  OTHER_EXPENSE:  'bg-rose-500/15    text-rose-400    border-rose-500/30',
+  CAPITAL:        'bg-purple-500/15  text-purple-400  border-purple-500/30',
+  PROFIT_AND_LOSS:'bg-yellow-500/15  text-yellow-400  border-yellow-500/30',
 }
 
-const ALL_TYPES: AccountType[] = ['asset', 'liability', 'income', 'expense', 'capital']
+const ALL_TYPES: AccountType[] = [
+  'ASSET', 'LIABILITY', 'INCOME', 'REVENUE',
+  'EXPENSE', 'OTHER_EXPENSE', 'CAPITAL', 'PROFIT_AND_LOSS',
+]
 
-const EMPTY: AccountPayload = { name: '', type: 'asset', code: '' }
+const EMPTY = { name: '', type: 'ASSET' as AccountType }
 
 export default function ChartOfAccountsPage() {
-  const { accounts, loading, error, fetchAll, create, update, archive, clearError } = useAccountStore()
+  const { accounts, loading, error, fetchAll, create, update, clearError } = useAccountStore()
 
-  const [search,       setSearch]   = useState('')
-  const [typeFilter,   setTypeFilter] = useState<AccountType | 'all'>('all')
-  const [showArchived, setShowArchived] = useState(false)
-  const [showForm,     setShowForm]  = useState(false)
-  const [editing,      setEditing]   = useState<Account | null>(null)
-  const [form,         setForm]      = useState<AccountPayload>(EMPTY)
-  const [saving,       setSaving]    = useState(false)
-  const [formErr,      setFormErr]   = useState('')
+  const [search,     setSearch]     = useState('')
+  const [typeFilter, setTypeFilter] = useState<AccountType | 'all'>('all')
+  const [showForm,   setShowForm]   = useState(false)
+  const [editing,    setEditing]    = useState<Account | null>(null)
+  const [form,       setForm]       = useState(EMPTY)
+  const [saving,     setSaving]     = useState(false)
+  const [formErr,    setFormErr]    = useState('')
 
   useEffect(() => { fetchAll() }, []) // eslint-disable-line
 
   function openCreate() {
     setEditing(null); setForm(EMPTY); setFormErr(''); setShowForm(true)
   }
-
   function openEdit(a: Account) {
-    setEditing(a)
-    setForm({ name: a.name, type: a.type, code: a.code ?? '' })
-    setFormErr(''); setShowForm(true)
+    setEditing(a); setForm({ name: a.name, type: a.type }); setFormErr(''); setShowForm(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,16 +59,12 @@ export default function ChartOfAccountsPage() {
 
   const filtered = accounts.filter(a => {
     const matchType   = typeFilter === 'all' || a.type === typeFilter
-    const matchSearch = a.name.toLowerCase().includes(search.toLowerCase()) ||
-                        (a.code ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchArch   = showArchived ? true : !a.isArchived
-    return matchType && matchSearch && matchArch
+    const matchSearch = a.name.toLowerCase().includes(search.toLowerCase())
+    return matchType && matchSearch
   })
 
-  // Group by type for a summary strip
   const counts = ALL_TYPES.reduce((acc, t) => ({
-    ...acc,
-    [t]: accounts.filter(a => a.type === t && !a.isArchived).length,
+    ...acc, [t]: accounts.filter(a => a.type === t).length,
   }), {} as Record<AccountType, number>)
 
   return (
@@ -77,34 +72,24 @@ export default function ChartOfAccountsPage() {
       <div className="db-page-header">
         <div>
           <h1 className="db-page-title">Chart of Accounts</h1>
-          <p className="db-page-sub">Define and manage the accounting hierarchy.</p>
+          <p className="db-page-sub">Define and manage the full accounting hierarchy.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5"
-            onClick={() => setShowArchived(v => !v)}>
-            {showArchived ? <RefreshCw size={13} /> : <Archive size={13} />}
-            {showArchived ? 'Hide Archived' : 'Show Archived'}
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={openCreate}>
-            <Plus size={13} /> New Account
-          </Button>
-        </div>
+        <Button size="sm" className="gap-1.5" onClick={openCreate}>
+          <Plus size={13} /> New Account
+        </Button>
       </div>
 
-      {/* ── Summary strip ───────────────────────────── */}
-      <div className="grid grid-cols-5 gap-3 mb-4">
+      {/* ── Type summary strip ──────────────────────── */}
+      <div className="grid grid-cols-4 gap-2 mb-4 sm:grid-cols-8">
         {ALL_TYPES.map(t => (
-          <button
-            key={t}
-            onClick={() => setTypeFilter(v => v === t ? 'all' : t)}
-            className={`rounded-xl border p-3 text-left transition-colors ${
+          <button key={t} onClick={() => setTypeFilter(v => v === t ? 'all' : t)}
+            className={`rounded-xl border p-2 text-left transition-colors ${
               typeFilter === t
                 ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
                 : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)]'
-            }`}
-          >
-            <p className="text-xs text-[var(--text-muted)] capitalize">{t}</p>
-            <p className="text-xl font-bold text-[var(--text)] mt-0.5">{counts[t]}</p>
+            }`}>
+            <p className="text-[10px] text-[var(--text-muted)] truncate">{t.replace('_', ' ')}</p>
+            <p className="text-lg font-bold text-[var(--text)]">{counts[t] ?? 0}</p>
           </button>
         ))}
       </div>
@@ -127,32 +112,25 @@ export default function ChartOfAccountsPage() {
                 <button onClick={() => setFormErr('')} className="auth-error-close">✕</button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-3">
-              <div className="auth-field col-span-2">
+            <form onSubmit={handleSubmit} className="flex gap-3 items-end flex-wrap">
+              <div className="auth-field flex-1 min-w-48">
                 <label className="auth-label">Account Name <span className="text-red-400">*</span></label>
-                <input className="auth-input" required
-                  value={form.name}
+                <input className="auth-input" required value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
-              <div className="auth-field">
-                <label className="auth-label">Code</label>
-                <input className="auth-input" placeholder="e.g. 1001"
-                  value={form.code ?? ''}
-                  onChange={e => setForm(f => ({ ...f, code: e.target.value }))} />
-              </div>
-              <div className="auth-field">
+              <div className="auth-field w-52">
                 <label className="auth-label">Type <span className="text-red-400">*</span></label>
                 <select className="auth-input" value={form.type}
                   onChange={e => setForm(f => ({ ...f, type: e.target.value as AccountType }))}>
                   {ALL_TYPES.map(t => (
-                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                    <option key={t} value={t}>{t.replace('_', ' ')}</option>
                   ))}
                 </select>
               </div>
-              <div className="col-span-3 flex justify-end gap-2 pt-1">
+              <div className="flex gap-2 mb-0.5">
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button type="submit" size="sm" disabled={saving}>
-                  {saving ? <><Loader2 size={13} className="animate-spin mr-1" />Saving…</> : (editing ? 'Update' : 'Create')}
+                  {saving ? <Loader2 size={13} className="animate-spin" /> : (editing ? 'Update' : 'Create')}
                 </Button>
               </div>
             </form>
@@ -163,7 +141,7 @@ export default function ChartOfAccountsPage() {
       {/* ── Search ──────────────────────────────────── */}
       <div className="relative mb-3">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-        <input className="auth-input pl-8 w-full max-w-xs" placeholder="Search name or code…"
+        <input className="auth-input pl-8 w-full max-w-xs" placeholder="Search accounts…"
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
@@ -189,48 +167,27 @@ export default function ChartOfAccountsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-5">Account Name</TableHead>
-                  <TableHead>Code</TableHead>
+                  <TableHead className="pl-5">#</TableHead>
+                  <TableHead>Account Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="pr-5 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(a => (
-                  <TableRow key={a.id} className={a.isArchived ? 'opacity-50' : ''}>
-                    <TableCell className="pl-5 text-sm font-medium text-[var(--text)]">{a.name}</TableCell>
+                  <TableRow key={a.id}>
+                    <TableCell className="pl-5 font-mono text-xs text-[var(--text-muted)]">#{a.id}</TableCell>
+                    <TableCell className="text-sm font-medium text-[var(--text)]">{a.name}</TableCell>
                     <TableCell>
-                      {a.code
-                        ? <span className="font-mono text-xs text-[var(--text-muted)]">{a.code}</span>
-                        : <span className="text-xs text-[var(--text-faint)]">—</span>}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border capitalize ${TYPE_COLORS[a.type]}`}>
-                        {a.type}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                        a.isArchived
-                          ? 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20'
-                          : 'bg-green-500/10 text-green-400 border-green-500/20'
-                      }`}>
-                        {a.isArchived ? 'Archived' : 'Active'}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TYPE_COLORS[a.type] ?? ''}`}>
+                        {a.type.replace('_', ' ')}
                       </span>
                     </TableCell>
                     <TableCell className="pr-5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(a)}
-                          className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
-                          <Pencil size={13} />
-                        </button>
-                        <button onClick={() => archive(a.id)}
-                          className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-                          title="Archive">
-                          <Archive size={13} />
-                        </button>
-                      </div>
+                      <button onClick={() => openEdit(a)}
+                        className="p-1.5 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+                        <Pencil size={13} />
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -183,13 +183,14 @@ export default function PurchaseOrderPage() {
     if (lines.some(l => !l.productId)) { setFormErr('All lines must have a product selected.'); return }
     setSaving(true)
     try {
-      const vendor = vendors.find(v => v.id === vendorId)
       await createPurchaseOrder({
         vendorId,
-        vendorName: vendor?.name ?? '',
-        date,
-        lines: lines.map(l => ({ ...l, subtotal: calcSubtotal(l) })),
-        total: orderTotal,
+        poDate: date,
+        items: lines.map(l => ({
+          productId: l.productId,
+          quantity:  l.quantity,
+          unitPrice: l.unitPrice,
+        })),
       })
       setShowForm(false)
       resetForm()
@@ -204,7 +205,7 @@ export default function PurchaseOrderPage() {
   }
 
   async function handleConvert(poId: number) {
-    await convertToBill(poId)
+    await createBillFromPO(poId)
     fetchPurchaseOrders()
   }
 

@@ -1,5 +1,6 @@
 import db from '../libs/db.js'
 import { generateDocNumber } from '../utils/generateDocNumber.js'
+import { postCustomerInvoiceEntry } from '../utils/ledger.js'
 
 const SO_INCLUDE = {
   customer: true,
@@ -112,23 +113,40 @@ export async function createInvoiceFromSO(req, res) {
     })
     if (!order) return res.status(404).json({ message: 'Sales order not found.' })
     if (order.invoice) return res.status(409).json({ message: 'An invoice already exists for this sales order.' })
-    if (order.status === 'CANCELLED') return res.status(400).json({ message: 'Cannot invoice a cancelled SO.' })
+    if (order.status !== 'CONFIRMED') {
+      return res.status(400).json({ message: 'Confirm the sales order before creating an invoice.' })
+    }
 
-    const amount = order.items.reduce((s, i) => {
+    const baseAmount = order.items.reduce(
+      (s, i) => s + Number(i.quantity) * Number(i.unitPrice),
+      0
+    )
+    const taxAmount = order.items.reduce((s, i) => {
       const base = Number(i.quantity) * Number(i.unitPrice)
-      const tax  = base * (Number(i.taxRate) / 100)
-      return s + base + tax
+      return s + base * (Number(i.taxRate) / 100)
     }, 0)
+    const amount = baseAmount + taxAmount
+    const analyticAccountId = order.items.find(i => i.analyticAccountId)?.analyticAccountId ?? null
 
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + 30)
 
     const invoice = await db.$transaction(async (tx) => {
+      const entry = await postCustomerInvoiceEntry(tx, {
+        partnerId: order.customerId,
+        createdBy: req.user.id,
+        baseAmount,
+        taxAmount,
+        analyticAccountId,
+        date: new Date(),
+      })
+
       const inv = await tx.customerInvoice.create({
         data: {
           soId,
           dueDate,
           amount,
+          journalEntryId: entry.id,
         },
       })
 
@@ -151,6 +169,7 @@ export async function createInvoiceFromSO(req, res) {
     return res.status(201).json({ message: 'Customer invoice created from sales order.', invoice: result })
   } catch (err) {
     console.error('[createInvoiceFromSO]', err)
+    if (err.status) return res.status(err.status).json({ message: err.message })
     return res.status(500).json({ message: 'Internal server error.' })
   }
 }

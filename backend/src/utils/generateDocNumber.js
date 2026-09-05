@@ -13,7 +13,7 @@ import db from '../libs/db.js'
  * @param {'PurchaseOrder'|'SalesOrder'|'JournalEntry'} model
  * @param {'PO'|'SO'|'JE'|'INV'} prefix
  */
-export async function generateDocNumber(model, prefix) {
+export async function generateDocNumber(model, prefix, client = db) {
   const year  = new Date().getFullYear()
   const field = { PurchaseOrder: 'poNumber', SalesOrder: 'soNumber', JournalEntry: 'number' }[model]
   if (!field) throw new Error(`Unknown model: ${model}`)
@@ -21,7 +21,7 @@ export async function generateDocNumber(model, prefix) {
   // Count docs created in the current calendar year
   const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`)
   const endOfYear   = new Date(`${year + 1}-01-01T00:00:00.000Z`)
-  const count = await db[model[0].toLowerCase() + model.slice(1)].count({
+  const count = await client[model[0].toLowerCase() + model.slice(1)].count({
     where: { createdAt: { gte: startOfYear, lt: endOfYear } },
   })
 

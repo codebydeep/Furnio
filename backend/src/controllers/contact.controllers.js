@@ -1,4 +1,7 @@
 import db from '../libs/db.js'
+import bcrypt from 'bcryptjs'
+
+const SALT_ROUNDS = 10
 
 export async function getAllContacts(req, res) {
   try {
@@ -34,10 +37,53 @@ export async function getContactById(req, res) {
 
 export async function createContact(req, res) {
   try {
-    const { name, type, email, mobile, city, state, pincode, profileImage } = req.body
-    const contact = await db.contact.create({
-      data: { name, type, email: email || null, mobile: mobile || null, city, state, pincode, profileImage },
+    const {
+      name, type, email, mobile, city, state, pincode, profileImage,
+      createPortalLogin, loginId, password,
+    } = req.body
+
+    if (createPortalLogin) {
+      if (!loginId || !password) {
+        return res.status(400).json({ message: 'Login ID and password are required to create a portal user.' })
+      }
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required to create a portal user.' })
+      }
+      const [existingLoginId, existingEmail] = await Promise.all([
+        db.user.findUnique({ where: { loginId } }),
+        db.user.findUnique({ where: { email } }),
+      ])
+      if (existingLoginId) return res.status(409).json({ message: 'Login ID is already taken.' })
+      if (existingEmail)   return res.status(409).json({ message: 'A user with that email already exists.' })
+    }
+
+    const contact = await db.$transaction(async (tx) => {
+      const created = await tx.contact.create({
+        data: {
+          name, type,
+          email: email || null,
+          mobile: mobile || null,
+          city, state, pincode, profileImage,
+        },
+      })
+
+      if (createPortalLogin) {
+        const hashed = await bcrypt.hash(password, SALT_ROUNDS)
+        await tx.user.create({
+          data: {
+            name,
+            loginId,
+            email,
+            password: hashed,
+            role: 'USER',
+            contactId: created.id,
+          },
+        })
+      }
+
+      return created
     })
+
     return res.status(201).json({ message: 'Contact created successfully.', contact })
   } catch (err) {
     console.error('[createContact]', err)

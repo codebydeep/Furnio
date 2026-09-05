@@ -9,41 +9,60 @@ function sanitize(user) {
   return safe
 }
 
-/* ── Public: Self-register as ADMIN (business owner) ──────── */
+/* ── Public: Self-register ────────────────────────────────── */
 export async function register(req, res) {
   try {
-    const { name, loginId, email, password } = req.body
+    const { name, loginId, email, password, role: requestedRole } = req.body
 
-    const [existingLoginId, existingEmail] = await Promise.all([
+    const [existingLoginId, existingEmail, userCount] = await Promise.all([
       db.user.findUnique({ where: { loginId } }),
       db.user.findUnique({ where: { email } }),
+      db.user.count(),
     ])
     if (existingLoginId) return res.status(409).json({ message: 'Login ID is already taken.' })
     if (existingEmail)   return res.status(409).json({ message: 'A user with that email already exists.' })
 
+    let role = requestedRole === 'CONTACT' ? 'USER' : (requestedRole || 'ADMIN')
+    if (!['ADMIN', 'ACCOUNTANT', 'USER'].includes(role)) role = 'ADMIN'
+    // First account is always the business owner
+    if (userCount === 0) role = 'ADMIN'
+
     const hashed = await bcrypt.hash(password, SALT_ROUNDS)
-    const user   = await db.user.create({
-      data: { name, loginId, email, password: hashed, role: 'ADMIN' },
+
+    const user = await db.$transaction(async (tx) => {
+      let contactId = null
+      if (role === 'USER') {
+        const contact = await tx.contact.create({
+          data: { name, type: 'CUSTOMER', email },
+        })
+        contactId = contact.id
+      }
+      return tx.user.create({
+        data: { name, loginId, email, password: hashed, role, contactId },
+      })
     })
 
     const token = signToken(user)
-    return res.status(201).json({ message: 'Business owner registered.', token, user: sanitize(user) })
+    return res.status(201).json({ message: 'Account created.', token, user: sanitize(user) })
   } catch (err) {
     console.error('[register]', err)
     return res.status(500).json({ message: 'Internal server error.' })
   }
 }
 
-/* ── Public: Login ────────────────────────────────────────── */
+/* ── Public: Login (email or login ID) ────────────────────── */
 export async function login(req, res) {
   try {
-    const { loginId, password } = req.body
+    const identifier = (req.body.loginId || req.body.email || '').trim()
+    const { password } = req.body
 
-    const user = await db.user.findUnique({ where: { loginId } })
-    if (!user) return res.status(401).json({ message: 'Invalid login ID or password.' })
+    const user = await db.user.findFirst({
+      where: { OR: [{ loginId: identifier }, { email: identifier }] },
+    })
+    if (!user) return res.status(401).json({ message: 'Invalid email / login ID or password.' })
 
     const valid = await bcrypt.compare(password, user.password)
-    if (!valid) return res.status(401).json({ message: 'Invalid login ID or password.' })
+    if (!valid) return res.status(401).json({ message: 'Invalid email / login ID or password.' })
 
     const token = signToken(user)
     return res.status(200).json({ message: 'Login successful.', token, user: sanitize(user) })

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   FileText, X, Loader2, CreditCard,
   CheckCircle2, Clock, XCircle, ChevronRight,
-  Download,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,10 +9,7 @@ import {
   Table, TableBody, TableCell,
   TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import {
-  useTransactionStore,
-  type CustomerInvoice, type PaymentMethod,
-} from '@/store'
+import { useTransactionStore, useJournalStore, type CustomerInvoice } from '@/store'
 
 function fmt(n: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n)
@@ -31,18 +27,24 @@ const STATUS_ICON: Record<string, React.ElementType> = {
 
 /* ─── Pay Dialog ─────────────────────────────────────────────── */
 function PayDialog({
-  invoice, onPay, onClose,
+  invoice, journals, onPay, onClose,
 }: {
-  invoice: CustomerInvoice
-  onPay: (id: number, method: PaymentMethod) => Promise<void>
-  onClose: () => void
+  invoice:  CustomerInvoice
+  journals: { id: number; name: string; type: string }[]
+  onPay:    (invoiceId: number, journalId: number, amount: number) => Promise<void>
+  onClose:  () => void
 }) {
-  const [method, setMethod] = useState<PaymentMethod>('bank')
-  const [paying, setPaying] = useState(false)
+  const cashJournals = journals.filter(j => j.type === 'BANK' || j.type === 'CASH')
+  const [journalId, setJournalId] = useState(cashJournals[0]?.id ?? 0)
+  const [amount,    setAmount]    = useState(invoice.amountDue)
+  const [paying,    setPaying]    = useState(false)
+  const [err,       setErr]       = useState('')
 
   async function handlePay() {
-    setPaying(true)
-    await onPay(invoice.id, method)
+    if (!journalId) { setErr('Please select a payment journal.'); return }
+    if (amount <= 0) { setErr('Amount must be greater than 0.'); return }
+    setPaying(true); setErr('')
+    await onPay(invoice.id, journalId, amount)
     setPaying(false)
     onClose()
   }
@@ -57,6 +59,7 @@ function PayDialog({
           </button>
         </CardHeader>
         <CardContent className="space-y-4">
+          {err && <div className="auth-error"><span>{err}</span></div>}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <p className="text-[var(--text-muted)]">Customer</p>
@@ -71,19 +74,25 @@ function PayDialog({
               <p className="font-medium text-[var(--text)]">{invoice.dueDate}</p>
             </div>
           </div>
+
           <div className="auth-field">
-            <label className="auth-label">Payment Method</label>
-            <div className="flex gap-2 mt-1">
-              {(['bank', 'cash'] as PaymentMethod[]).map(m => (
-                <button key={m} type="button" onClick={() => setMethod(m)}
-                  className={`auth-role-card flex-1 capitalize${method === m ? ' auth-role-card--active' : ''}`}>
-                  <span className="auth-role-label capitalize flex items-center gap-1 justify-center">
-                    <CreditCard size={13} /> {m}
-                  </span>
-                </button>
+            <label className="auth-label">Payment Journal <span className="text-red-400">*</span></label>
+            <select className="auth-input" value={journalId}
+              onChange={e => setJournalId(+e.target.value)}>
+              <option value={0}>— select bank / cash —</option>
+              {cashJournals.map(j => (
+                <option key={j.id} value={j.id}>{j.name} ({j.type})</option>
               ))}
-            </div>
+            </select>
           </div>
+
+          <div className="auth-field">
+            <label className="auth-label">Amount (₹) <span className="text-red-400">*</span></label>
+            <input type="number" min="0.01" step="0.01" className="auth-input"
+              value={amount}
+              onChange={e => setAmount(parseFloat(e.target.value) || 0)} />
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
             <Button size="sm" disabled={paying} onClick={handlePay}>
@@ -100,12 +109,12 @@ function PayDialog({
 function InvoiceDetail({
   invoice, onClose, onPayClick,
 }: {
-  invoice: CustomerInvoice
-  onClose: () => void
+  invoice:    CustomerInvoice
+  onClose:    () => void
   onPayClick: (inv: CustomerInvoice) => void
 }) {
   const StatusIcon = STATUS_ICON[invoice.status] ?? Clock
-  const isPaid = invoice.status === 'done' || !!invoice.paymentId
+  const isPaid     = invoice.paymentStatus === 'PAID' || invoice.amountDue <= 0
 
   return (
     <Card className="mb-4">
@@ -119,7 +128,7 @@ function InvoiceDetail({
           )}
           {isPaid && (
             <span className="text-xs text-green-400 flex items-center gap-1">
-              <CheckCircle2 size={11} /> Paid — ref #{invoice.paymentId}
+              <CheckCircle2 size={11} /> Paid
             </span>
           )}
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text)]">
@@ -129,22 +138,13 @@ function InvoiceDetail({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-4 gap-3 mb-4 text-xs">
-          <div>
-            <p className="text-[var(--text-muted)]">Customer</p>
-            <p className="font-medium text-[var(--text)]">{invoice.customerName}</p>
-          </div>
-          <div>
-            <p className="text-[var(--text-muted)]">Invoice Date</p>
-            <p className="font-medium text-[var(--text)]">{invoice.invoiceDate}</p>
-          </div>
-          <div>
-            <p className="text-[var(--text-muted)]">Due Date</p>
-            <p className="font-medium text-[var(--text)]">{invoice.dueDate}</p>
-          </div>
+          <div><p className="text-[var(--text-muted)]">Customer</p><p className="font-medium text-[var(--text)]">{invoice.customerName}</p></div>
+          <div><p className="text-[var(--text-muted)]">Invoice Date</p><p className="font-medium text-[var(--text)]">{invoice.invoiceDate}</p></div>
+          <div><p className="text-[var(--text-muted)]">Due Date</p><p className="font-medium text-[var(--text)]">{invoice.dueDate}</p></div>
           <div>
             <p className="text-[var(--text-muted)]">Status</p>
             <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLE[invoice.status]}`}>
-              <StatusIcon size={10} /> {invoice.status}
+              <StatusIcon size={10} /> {invoice.paymentStatus}
             </span>
           </div>
         </div>
@@ -197,29 +197,30 @@ function InvoiceDetail({
 
 /* ─── Page ──────────────────────────────────────────────────── */
 export default function InvoicePage() {
-  const {
-    customerInvoices, loading, error,
-    fetchInvoices, payInvoice,
-  } = useTransactionStore()
+  const { customerInvoices, loading, error, fetchInvoices, payInvoice } = useTransactionStore()
+  const { journals, fetchJournals } = useJournalStore()
 
-  const [selected,  setSelected]  = useState<CustomerInvoice | null>(null)
-  const [payTarget, setPayTarget] = useState<CustomerInvoice | null>(null)
+  const [selected,     setSelected]     = useState<CustomerInvoice | null>(null)
+  const [payTarget,    setPayTarget]    = useState<CustomerInvoice | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  useEffect(() => { fetchInvoices() }, []) // eslint-disable-line
+  useEffect(() => {
+    fetchInvoices()
+    fetchJournals()
+  }, []) // eslint-disable-line
 
-  async function handlePay(id: number, method: PaymentMethod) {
-    await payInvoice(id, method)
+  async function handlePay(id: number, journalId: number, amount: number) {
+    await payInvoice(id, { journalId, amount })
     fetchInvoices()
     setSelected(null)
   }
 
-  const unpaidCount = customerInvoices.filter(i => i.status !== 'done').length
-  const totalDue    = customerInvoices.filter(i => i.status !== 'done').reduce((s, i) => s + i.amountDue, 0)
-  const totalPaid   = customerInvoices.filter(i => i.status === 'done').reduce((s, i) => s + i.grandTotal, 0)
+  const unpaidCount = customerInvoices.filter(i => i.paymentStatus !== 'PAID').length
+  const totalDue    = customerInvoices.filter(i => i.paymentStatus !== 'PAID').reduce((s, i) => s + i.amountDue, 0)
+  const totalPaid   = customerInvoices.filter(i => i.paymentStatus === 'PAID').reduce((s, i) => s + i.grandTotal, 0)
 
   const filtered = customerInvoices.filter(i =>
-    statusFilter === 'all' || i.status === statusFilter
+    statusFilter === 'all' || i.paymentStatus === statusFilter.toUpperCase()
   )
 
   return (
@@ -227,6 +228,7 @@ export default function InvoicePage() {
       {payTarget && (
         <PayDialog
           invoice={payTarget}
+          journals={journals}
           onPay={handlePay}
           onClose={() => setPayTarget(null)}
         />
@@ -235,51 +237,31 @@ export default function InvoicePage() {
       <div className="db-page-header">
         <div>
           <h1 className="db-page-title">Customer Invoices</h1>
-          <p className="db-page-sub">Invoices generated from sales orders. Record incoming payments.</p>
+          <p className="db-page-sub">Invoices from sales orders. Record incoming payments.</p>
         </div>
       </div>
 
       {/* ── KPI strip ────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-[var(--text-muted)]">Unpaid Invoices</p>
-            <p className="text-2xl font-bold text-orange-400 mt-0.5">{unpaidCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-[var(--text-muted)]">Total Due</p>
-            <p className="text-2xl font-bold text-red-400 mt-0.5">{fmt(totalDue)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-[var(--text-muted)]">Total Collected</p>
-            <p className="text-2xl font-bold text-green-400 mt-0.5">{fmt(totalPaid)}</p>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-[var(--text-muted)]">Unpaid</p><p className="text-2xl font-bold text-orange-400 mt-0.5">{unpaidCount}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-[var(--text-muted)]">Total Due</p><p className="text-2xl font-bold text-red-400 mt-0.5">{fmt(totalDue)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-[var(--text-muted)]">Total Collected</p><p className="text-2xl font-bold text-green-400 mt-0.5">{fmt(totalPaid)}</p></CardContent></Card>
       </div>
 
       {selected && (
-        <InvoiceDetail
-          invoice={selected}
-          onClose={() => setSelected(null)}
-          onPayClick={i => setPayTarget(i)}
-        />
+        <InvoiceDetail invoice={selected} onClose={() => setSelected(null)} onPayClick={i => setPayTarget(i)} />
       )}
 
       {/* ── Status filter ────────────────────────────── */}
       <div className="flex gap-1 mb-3">
-        {['all', 'draft', 'confirmed', 'done', 'cancelled'].map(s => (
-          <button key={s}
-            onClick={() => setStatusFilter(s)}
+        {['all', 'UNPAID', 'PARTIAL', 'PAID'].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)}
             className={`px-3 py-1 text-xs rounded-full border transition-colors capitalize ${
               statusFilter === s
                 ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                 : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]'
             }`}>
-            {s}
+            {s === 'all' ? 'All' : s}
           </button>
         ))}
       </div>
@@ -313,8 +295,7 @@ export default function InvoicePage() {
               </TableHeader>
               <TableBody>
                 {filtered.map(inv => {
-                  const StatusIcon = STATUS_ICON[inv.status] ?? Clock
-                  const isPaid = inv.status === 'done' || !!inv.paymentId
+                  const isPaid = inv.paymentStatus === 'PAID' || inv.amountDue <= 0
                   return (
                     <TableRow key={inv.id} className="cursor-pointer hover:bg-[var(--surface-2)]"
                       onClick={() => setSelected(inv)}>
@@ -327,8 +308,8 @@ export default function InvoicePage() {
                         {isPaid ? '—' : fmt(inv.amountDue)}
                       </TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLE[inv.status]}`}>
-                          <StatusIcon size={10} /> {inv.status}
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
+                          {inv.paymentStatus}
                         </span>
                       </TableCell>
                       <TableCell className="pr-5 text-right" onClick={e => e.stopPropagation()}>

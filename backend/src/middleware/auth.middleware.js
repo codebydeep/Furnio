@@ -19,7 +19,6 @@ export async function authenticate(req, res, next) {
   }
 
   try {
-    // Re-fetch from DB so req.user is always fresh (role changes take effect immediately)
     const user = await db.user.findUnique({
       where:  { id: decoded.id },
       select: { id: true, name: true, loginId: true, email: true, role: true, contactId: true },

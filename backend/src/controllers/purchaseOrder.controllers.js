@@ -1,5 +1,6 @@
 import db from '../libs/db.js'
 import { generateDocNumber } from '../utils/generateDocNumber.js'
+import { postVendorBillEntry } from '../utils/ledger.js'
 
 const PO_INCLUDE = {
   vendor: true,
@@ -112,7 +113,9 @@ export async function createBillFromPO(req, res) {
     })
     if (!order) return res.status(404).json({ message: 'Purchase order not found.' })
     if (order.bill) return res.status(409).json({ message: 'A vendor bill already exists for this purchase order.' })
-    if (order.status === 'CANCELLED') return res.status(400).json({ message: 'Cannot create a bill for a cancelled PO.' })
+    if (order.status !== 'CONFIRMED') {
+      return res.status(400).json({ message: 'Confirm the purchase order before creating a vendor bill.' })
+    }
 
     const amount = order.items.reduce(
       (s, i) => s + Number(i.quantity) * Number(i.unitPrice),
@@ -124,16 +127,27 @@ export async function createBillFromPO(req, res) {
     dueDate.setDate(dueDate.getDate() + 30)
 
     // Run in a transaction
+    const analyticAccountId = order.items.find(i => i.analyticAccountId)?.analyticAccountId ?? null
+    const createdBy = req.user.id
+
     const bill = await db.$transaction(async (tx) => {
+      const entry = await postVendorBillEntry(tx, {
+        partnerId: order.vendorId,
+        createdBy,
+        amount,
+        analyticAccountId,
+        date: new Date(),
+      })
+
       const newBill = await tx.vendorBill.create({
         data: {
           poId,
           dueDate,
           amount,
+          journalEntryId: entry.id,
         },
       })
 
-      // Update PO status to DONE
       await tx.purchaseOrder.update({
         where: { id: poId },
         data:  { status: 'DONE' },
@@ -150,6 +164,7 @@ export async function createBillFromPO(req, res) {
     return res.status(201).json({ message: 'Vendor bill created from purchase order.', bill: result })
   } catch (err) {
     console.error('[createBillFromPO]', err)
+    if (err.status) return res.status(err.status).json({ message: err.message })
     return res.status(500).json({ message: 'Internal server error.' })
   }
 }
