@@ -1,25 +1,27 @@
 /**
  * Axios instance — single source for all HTTP calls.
  *
- * - Reads BASE_URL from VITE_API_URL env var (fallback: localhost:8069)
- * - Attaches JWT Bearer token from localStorage on every request
- * - On 401: clears auth state and redirects to /login
- * - Normalises error shape so stores always get { message, status }
+ * Base URL: VITE_API_URL env var  →  fallback: http://localhost:3000/api
+ * Backend routes are mounted at /api/users so callers use e.g. /users/login
+ *
+ * Interceptors:
+ *  - Request:  attach JWT Bearer token from localStorage
+ *  - Response: on 401 clear auth + redirect to /login
+ *              normalise error shape to { message, status }
  */
-import axios, {
-  type AxiosError,
-  type InternalAxiosRequestConfig,
-} from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8069/api'
+export const BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3000/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,   // send cookies if any are set in future
 })
 
-/* ── Request interceptor: attach token ──────────────────────── */
+/* ── Request: attach token ─────────────────────────────────── */
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('ub_token')
@@ -31,35 +33,39 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-/* ── Response interceptor: handle 401 / normalise errors ───── */
+/* ── Response: handle 401 + normalise errors ───────────────── */
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ message?: string; detail?: string }>) => {
     if (error.response?.status === 401) {
-      // Clear stored credentials
       localStorage.removeItem('ub_token')
-      localStorage.removeItem('ub_user')
-      // Redirect to login (works outside React tree)
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
     }
-    // Normalise error so every store can do:  error.message
     const message =
       error.response?.data?.message ??
-      error.response?.data?.detail ??
-      error.message ??
+      error.response?.data?.detail  ??
+      error.message                 ??
       'Unexpected error'
-    return Promise.reject({ message, status: error.response?.status ?? 0 })
+    return Promise.reject({ message, status: error.response?.status ?? 0 } as ApiError)
   }
 )
 
-/* ── Typed helper so stores don't repeat try/catch boilerplate ─ */
+/* ── Typed result helper ───────────────────────────────────── */
 export interface ApiError {
   message: string
-  status: number
+  status:  number
 }
 
+/**
+ * Wraps an axios call and returns a discriminated tuple:
+ *   [data, null]  on success
+ *   [null, error] on failure
+ *
+ * Usage:
+ *   const [data, err] = await request(() => api.get('/users'))
+ */
 export async function request<T>(
   fn: () => Promise<{ data: T }>
 ): Promise<[T, null] | [null, ApiError]> {

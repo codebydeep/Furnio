@@ -19,6 +19,13 @@ datasource db {
   email     String   @unique
   image     String?
   password  String
+  role      Role     @default(accountant)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  admin
+  accountant
+  contact
 }
