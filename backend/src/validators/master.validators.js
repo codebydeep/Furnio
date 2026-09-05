@@ -27,13 +27,16 @@ export const productSchema = z.object({
   name:       z.string({ required_error: 'Product name is required.' }).min(1),
   type:       z.enum(['GOODS', 'SERVICE', 'COMBO'], { required_error: 'Type is required.' }),
   salesPrice: z.number({ required_error: 'Sales price is required.' }).nonnegative(),
-  costPrice:  z.number({ required_error: 'Cost price is required.' }).nonnegative(),
-  category:   z.string({ required_error: 'Category is required.' }).min(1),
+  cost:       z.number({ required_error: 'Cost price is required.' }).nonnegative(),
+  category:   z.string().optional(),
 })
 
 export const accountSchema = z.object({
   name: z.string({ required_error: 'Account name is required.' }).min(1),
-  type: z.enum(['ASSET', 'LIABILITY', 'EXPENSE', 'INCOME', 'CAPITAL'], { required_error: 'Account type is required.' }),
+  type: z.enum([
+    'ASSET', 'LIABILITY', 'EXPENSE', 'INCOME',
+    'CAPITAL', 'PROFIT_AND_LOSS', 'REVENUE', 'OTHER_EXPENSE',
+  ], { required_error: 'Account type is required.' }),
 })
 
 export const journalSchema = z.object({
@@ -44,14 +47,23 @@ export const journalSchema = z.object({
 
 export const analyticAccountSchema = z.object({
   name: z.string({ required_error: 'Name is required.' }).min(1),
-  type: z.enum(['INCOME', 'EXPENSES'], { required_error: 'Type is required.' }),
+  type: z.enum(['INCOME', 'EXPENSE'], { required_error: 'Type must be INCOME or EXPENSE.' }),
+})
+
+const budgetLineSchema = z.object({
+  startDate:       z.string({ required_error: 'Start date is required.' }),
+  endDate:         z.string({ required_error: 'End date is required.' }),
+  committedAmount: z.number({ required_error: 'Committed amount is required.' }).nonnegative(),
+  allocatedAmount: z.number({ required_error: 'Allocated amount is required.' }).nonnegative(),
 })
 
 export const budgetSchema = z.object({
   name:              z.string({ required_error: 'Budget name is required.' }).min(1),
-  periodStart:       z.string({ required_error: 'Period start is required.' }).datetime({ message: 'Invalid date.' }),
-  periodEnd:         z.string({ required_error: 'Period end is required.' }).datetime({ message: 'Invalid date.' }),
-  plannedAmount:     z.number({ required_error: 'Planned amount is required.' }).nonnegative(),
+  budgetType:        z.string().optional(),
+  periodStart:       z.string({ required_error: 'Period start is required.' }),
+  periodEnd:         z.string({ required_error: 'Period end is required.' }),
   responsiblePerson: z.string({ required_error: 'Responsible person is required.' }).min(1),
   analyticAccountId: z.number({ required_error: 'Analytic account is required.' }).int().positive(),
+  accountId:         z.number().int().positive().optional(),
+  lines:             z.array(budgetLineSchema).optional(),
 })

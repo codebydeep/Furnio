@@ -1,18 +1,34 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import prisma from './db/prisma.js'
-import authRoutes from './routes/authRoutes.js'
-import { contactRouter, productRouter, accountRouter, journalRouter } from './routes/masterRoutes.js'
+import db from './libs/db.js'
+
+/* ── Route files ────────────────────────────────────────────── */
+import authRoutes from './routes/auth.routes.js'
+import {
+  contactRouter,
+  productRouter,
+  accountRouter,
+  journalRouter,
+  analyticAccountRouter,
+  budgetRouter,
+} from './routes/master.routes.js'
+import {
+  purchaseOrderRouter,
+  vendorBillRouter,
+  salesOrderRouter,
+  customerInvoiceRouter,
+  paymentRouter,
+  journalEntryRouter,
+} from './routes/transaction.routes.js'
+import { reportsRouter }   from './routes/reports.routes.js'
+import { dashboardRouter } from './routes/dashboard.routes.js'
 
 const app  = express()
 const port = process.env.PORT || 3000
 
-/* ── CORS ──────────────────────────────────────────────────────
-   Allow requests from the Vite dev server and production origin.
-   Add more origins to the array if needed.
-─────────────────────────────────────────────────────────────── */
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5174')
+
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
   .split(',')
   .map(o => o.trim())
 
@@ -28,28 +44,48 @@ app.use(cors({
 
 app.use(express.json())
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+/* ── Health check ───────────────────────────────────────────── */
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'DealFlow API' }))
 
-// User routes
-app.use('/api/users', userRoutes)
+/* ── Routes ─────────────────────────────────────────────────── */
+app.use('/api/auth',              authRoutes)
+app.use('/api/dashboard',         dashboardRouter)
+
+// Master data
+app.use('/api/contacts',          contactRouter)
+app.use('/api/products',          productRouter)
+app.use('/api/accounts',          accountRouter)
+app.use('/api/journals',          journalRouter)
+app.use('/api/analytic-accounts', analyticAccountRouter)
+app.use('/api/budgets',           budgetRouter)
+
+// Transactions
+app.use('/api/purchase-orders',    purchaseOrderRouter)
+app.use('/api/vendor-bills',       vendorBillRouter)
+app.use('/api/sales-orders',       salesOrderRouter)
+app.use('/api/customer-invoices',  customerInvoiceRouter)
+app.use('/api/payments',           paymentRouter)
+app.use('/api/journal-entries',    journalEntryRouter)
+
+// Reports
+app.use('/api/reports', reportsRouter)
 
 /* ── 404 ────────────────────────────────────────────────────── */
 app.use((_req, res) => res.status(404).json({ message: 'Route not found.' }))
 
+/* ── Global error handler ───────────────────────────────────── */
 app.use((err, _req, res, _next) => {
   console.error('[unhandled]', err)
-  res.status(500).json({ message: err.message || 'Internal server error.' })
+  res.status(err.status ?? 500).json({ message: err.message || 'Internal server error.' })
 })
 
 /* ── Start ──────────────────────────────────────────────────── */
-prisma.$connect()
+db.$connect()
   .then(() => {
-    console.log('Database connected')
-    app.listen(port, () => console.log(`Server listening on port ${port}`))
+    console.log('✅ Database connected')
+    app.listen(port, () => console.log(`🚀 Server listening on port ${port}`))
   })
   .catch(err => {
-    console.error('Failed to connect to database:', err)
+    console.error('❌ Failed to connect to database:', err)
     process.exit(1)
   })

@@ -1,31 +1,40 @@
 import { create } from 'zustand'
 import { api, request } from '@/lib/api'
 
-export type ContactType = 'customer' | 'vendor' | 'both'
+export type ContactType = 'CUSTOMER' | 'VENDOR' | 'BOTH'
 
 export interface Contact {
-  id: number
-  name: string
-  type: ContactType
-  email: string
-  mobile: string
-  city: string
-  state: string
-  pincode: string
-  profileImage?: string
-  isArchived: boolean
+  id:           number
+  name:         string
+  type:         ContactType
+  email:        string
+  mobile:       string
+  city:         string
+  state:        string
+  pincode:      string
+  profileImage: string | null
+  archived:     boolean
+  /** Alias so existing pages that use isArchived still work */
+  isArchived:   boolean
+  createdAt:    string
 }
 
-export type ContactPayload = Omit<Contact, 'id' | 'isArchived'>
+export type ContactPayload = {
+  name:    string
+  type:    ContactType
+  email:   string
+  mobile:  string
+  city:    string
+  state:   string
+  pincode: string
+}
 
 interface ContactState {
-  contacts:   Contact[]
-  selected:   Contact | null
-  loading:    boolean
-  error:      string | null
+  contacts:  Contact[]
+  loading:   boolean
+  error:     string | null
 
   fetchAll:   (includeArchived?: boolean) => Promise<void>
-  fetchOne:   (id: number) => Promise<void>
   create:     (payload: ContactPayload) => Promise<Contact | null>
   update:     (id: number, payload: Partial<ContactPayload>) => Promise<boolean>
   archive:    (id: number) => Promise<boolean>
@@ -33,11 +42,15 @@ interface ContactState {
   clearError: () => void
 }
 
-export const useContactStore = create<ContactState>((set, get) => ({
-  contacts:  [],
-  selected:  null,
-  loading:   false,
-  error:     null,
+/** Normalise API response to include isArchived alias */
+function norm(c: any): Contact {
+  return { ...c, isArchived: c.archived ?? false }
+}
+
+export const useContactStore = create<ContactState>((set) => ({
+  contacts: [],
+  loading:  false,
+  error:    null,
 
   fetchAll: async (includeArchived = false) => {
     set({ loading: true, error: null })
@@ -45,49 +58,52 @@ export const useContactStore = create<ContactState>((set, get) => ({
       api.get('/contacts', { params: { archived: includeArchived } })
     )
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ contacts: data!, loading: false })
-  },
-
-  fetchOne: async (id) => {
-    set({ loading: true, error: null })
-    const [data, err] = await request<Contact>(() => api.get(`/contacts/${id}`))
-    if (err) { set({ error: err.message, loading: false }); return }
-    set({ selected: data!, loading: false })
+    set({ contacts: (data ?? []).map(norm), loading: false })
   },
 
   create: async (payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<Contact>(() => api.post('/contacts', payload))
+    const [data, err] = await request<{ contact: Contact }>(() =>
+      api.post('/contacts', payload)
+    )
     if (err) { set({ error: err.message, loading: false }); return null }
-    set(s => ({ contacts: [...s.contacts, data!], loading: false }))
-    return data!
+    const c = norm(data!.contact)
+    set(s => ({ contacts: [c, ...s.contacts], loading: false }))
+    return c
   },
 
   update: async (id, payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<Contact>(() => api.patch(`/contacts/${id}`, payload))
+    const [data, err] = await request<{ contact: Contact }>(() =>
+      api.patch(`/contacts/${id}`, payload)
+    )
     if (err) { set({ error: err.message, loading: false }); return false }
+    const c = norm(data!.contact)
     set(s => ({
-      contacts: s.contacts.map(c => c.id === id ? data! : c),
-      selected: s.selected?.id === id ? data! : s.selected,
+      contacts: s.contacts.map(ct => ct.id === id ? c : ct),
       loading: false,
     }))
     return true
   },
 
   archive: async (id) => {
-    const ok = await get().update(id, { } as any)
-    if (!ok) return false
-    const [, err] = await request(() => api.post(`/contacts/${id}/archive`))
+    const [data, err] = await request<{ contact: Contact }>(() =>
+      api.patch(`/contacts/${id}/archive`)
+    )
     if (err) { set({ error: err.message }); return false }
-    set(s => ({ contacts: s.contacts.map(c => c.id === id ? { ...c, isArchived: true } : c) }))
+    const c = norm(data!.contact)
+    set(s => ({ contacts: s.contacts.map(ct => ct.id === id ? c : ct) }))
     return true
   },
 
   unarchive: async (id) => {
-    const [, err] = await request(() => api.post(`/contacts/${id}/unarchive`))
+    // archive endpoint is a toggle
+    const [data, err] = await request<{ contact: Contact }>(() =>
+      api.patch(`/contacts/${id}/archive`)
+    )
     if (err) { set({ error: err.message }); return false }
-    set(s => ({ contacts: s.contacts.map(c => c.id === id ? { ...c, isArchived: false } : c) }))
+    const c = norm(data!.contact)
+    set(s => ({ contacts: s.contacts.map(ct => ct.id === id ? c : ct) }))
     return true
   },
 

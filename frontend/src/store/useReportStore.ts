@@ -10,15 +10,14 @@ export interface BalanceSheetRow {
 }
 
 export interface BalanceSheet {
-  asOf:        string
-  assets:      BalanceSheetRow[]
-  liabilities: BalanceSheetRow[]
-  capital:     BalanceSheetRow[]
+  asOf:             string
+  assets:           BalanceSheetRow[]
+  liabilities:      BalanceSheetRow[]
+  capital:          BalanceSheetRow[]
   totalAssets:      number
   totalLiabilities: number
   totalCapital:     number
-  /* Assets = Liabilities + Capital */
-  balanced:    boolean
+  balanced:         boolean
 }
 
 /* ── Profit & Loss ─────────────────────────────────────────── */
@@ -40,40 +39,38 @@ export interface ProfitLoss {
 
 /* ── Budget Report ─────────────────────────────────────────── */
 export interface BudgetReportLine {
-  analyticAccount: string
-  plannedAmount:   number
-  actualAmount:    number
-  variance:        number
-  variancePct:     number
+  id:                number
+  name:              string
+  status:            string
+  analyticAccount:   string
+  analyticType:      string
+  periodStart:       string
+  periodEnd:         string
+  responsiblePerson: string
+  totalCommitted:    number
+  totalAllocated:    number
+  actual:            number
+  achievedPercent:   number
 }
 
 export interface BudgetReport {
-  budgetName:  string
-  periodStart: string
-  periodEnd:   string
-  lines:       BudgetReportLine[]
-  totalPlanned: number
-  totalActual:  number
-  totalVariance: number
+  budgets:        BudgetReportLine[]
+  totalCommitted: number
+  totalAllocated: number
+  totalActual:    number
 }
 
 /* ── Store ─────────────────────────────────────────────────── */
-interface ReportParams {
-  from?: string
-  to?:   string
-  asOf?: string
-}
-
 interface ReportState {
-  balanceSheet:  BalanceSheet | null
-  profitLoss:    ProfitLoss   | null
-  budgetReport:  BudgetReport | null
-  loading:       boolean
-  error:         string | null
+  balanceSheet: BalanceSheet | null
+  profitLoss:   ProfitLoss   | null
+  budgetReport: BudgetReport | null
+  loading:      boolean
+  error:        string | null
 
-  fetchBalanceSheet: (params?: Pick<ReportParams,'asOf'>) => Promise<void>
-  fetchProfitLoss:   (params:  Pick<ReportParams,'from'|'to'>) => Promise<void>
-  fetchBudgetReport: (budgetId: number) => Promise<void>
+  fetchBalanceSheet: (params?: { asOf?: string }) => Promise<void>
+  fetchProfitLoss:   (params:  { from: string; to: string }) => Promise<void>
+  fetchBudgetReport: () => Promise<void>
   clearError: () => void
 }
 
@@ -102,10 +99,10 @@ export const useReportStore = create<ReportState>((set) => ({
     set({ profitLoss: data!, loading: false })
   },
 
-  fetchBudgetReport: async (budgetId) => {
+  fetchBudgetReport: async () => {
     set({ loading: true, error: null })
     const [data, err] = await request<BudgetReport>(() =>
-      api.get(`/reports/budget/${budgetId}`)
+      api.get('/reports/budget')
     )
     if (err) { set({ error: err.message, loading: false }); return }
     set({ budgetReport: data!, loading: false })

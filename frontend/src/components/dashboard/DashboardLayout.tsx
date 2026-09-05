@@ -5,6 +5,7 @@ import {
   BookOpenCheck, ShoppingCart, FileText, CreditCard,
   BarChart3, TrendingUp, PieChart, ChevronLeft, ChevronRight,
   LogOut, Settings, Bell, Search, Menu, X, UserCog,
+  Activity, BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -38,21 +39,23 @@ const NAV_GROUPS: { group: string; items: NavItem[] }[] = [
   {
     group: 'Master Data',
     items: [
-      { label: 'Contacts',          to: '/master/contacts', icon: Users           },
-      { label: 'Products',          to: '/master/products', icon: FileSpreadsheet  },
-      { label: 'Chart of Accounts', to: '/master/coa',      icon: BookMarked      },
-      { label: 'Journals',          to: '/master/journals', icon: BookOpenCheck   },
-      { label: 'Budget',            to: '/master/budget',   icon: PieChart        },
+      { label: 'Contacts',          to: '/master/contacts',          icon: Users           },
+      { label: 'Products',          to: '/master/products',          icon: FileSpreadsheet  },
+      { label: 'Chart of Accounts', to: '/master/coa',               icon: BookMarked      },
+      { label: 'Journals',          to: '/master/journals',          icon: BookOpenCheck   },
+      { label: 'Analytic Accounts', to: '/master/analytic-accounts', icon: Activity        },
+      { label: 'Budget',            to: '/master/budget',            icon: PieChart        },
     ],
   },
   {
     group: 'Transactions',
     items: [
-      { label: 'Purchase Orders', to: '/transactions/purchase-order', icon: ShoppingCart },
-      { label: 'Vendor Bills',    to: '/transactions/vendor-bill',    icon: FileText     },
-      { label: 'Sales Orders',    to: '/transactions/sales-order',    icon: ShoppingCart },
-      { label: 'Invoices',        to: '/transactions/invoice',        icon: FileText     },
-      { label: 'Payments',        to: '/transactions/payment',        icon: CreditCard   },
+      { label: 'Purchase Orders', to: '/transactions/purchase-order',    icon: ShoppingCart },
+      { label: 'Vendor Bills',    to: '/transactions/vendor-bill',       icon: FileText     },
+      { label: 'Sales Orders',    to: '/transactions/sales-order',       icon: ShoppingCart },
+      { label: 'Invoices',        to: '/transactions/invoice',           icon: FileText     },
+      { label: 'Payments',        to: '/transactions/payment',           icon: CreditCard   },
+      { label: 'Journal Entries', to: '/transactions/journal-entries',   icon: BookOpen     },
     ],
   },
   {

@@ -2,119 +2,242 @@ import { create } from 'zustand'
 import { api, request } from '@/lib/api'
 
 /* ── Shared ──────────────────────────────────────────────────── */
-export type TxnStatus = 'draft' | 'confirmed' | 'done' | 'cancelled'
-export type PaymentMethod = 'bank' | 'cash'
+export type DocStatus     = 'DRAFT' | 'CONFIRMED' | 'DONE' | 'CANCELLED'
+export type PaymentStatus = 'UNPAID' | 'PARTIAL' | 'PAID'
+export type PaymentDirection = 'RECEIVED' | 'SEND'
+// Legacy aliases used in some pages
+export type TxnStatus    = DocStatus
+export type PaymentMethod = 'BANK' | 'CASH'
 
 export interface OrderLine {
   productId:   number
   productName: string
   quantity:    number
   unitPrice:   number
-  tax:         number   // percentage, e.g. 18
+  tax:         number   // taxRate percentage
   subtotal:    number
 }
 
 /* ── Purchase Order ─────────────────────────────────────────── */
 export interface PurchaseOrder {
   id:         number
+  poNumber:   string
   vendorId:   number
+  vendor:     { id: number; name: string }
+  poDate:     string
+  status:     DocStatus
+  items:      any[]
+  bill?:      VendorBill | null
+  // computed helpers for display
   vendorName: string
   date:       string
   lines:      OrderLine[]
   total:      number
-  status:     TxnStatus
   billId?:    number
 }
 
 /* ── Vendor Bill ─────────────────────────────────────────────── */
 export interface VendorBill {
-  id:          number
-  purchaseOrderId: number
-  vendorId:    number
-  vendorName:  string
-  invoiceDate: string
-  dueDate:     string
-  lines:       OrderLine[]
-  total:       number
-  amountDue:   number
-  status:      TxnStatus
-  paymentId?:  number
+  id:            number
+  poId:          number
+  po:            any
+  billDate:      string
+  dueDate:       string
+  amount:        number
+  paymentStatus: PaymentStatus
+  payments:      Payment[]
+  // computed helpers
+  vendorName:    string
+  invoiceDate:   string
+  lines:         OrderLine[]
+  total:         number
+  amountDue:     number
+  status:        string
+  paymentId?:    number
 }
 
 /* ── Sales Order ─────────────────────────────────────────────── */
 export interface SalesOrder {
   id:           number
+  soNumber:     string
   customerId:   number
+  customer:     { id: number; name: string }
+  soDate:       string
+  status:       DocStatus
+  items:        any[]
+  invoice?:     CustomerInvoice | null
+  // computed helpers
   customerName: string
   date:         string
   lines:        OrderLine[]
   total:        number
   taxTotal:     number
   grandTotal:   number
-  status:       TxnStatus
   invoiceId?:   number
 }
 
 /* ── Customer Invoice ────────────────────────────────────────── */
 export interface CustomerInvoice {
-  id:            number
-  salesOrderId:  number
-  customerId:    number
-  customerName:  string
-  invoiceDate:   string
-  dueDate:       string
-  lines:         OrderLine[]
-  total:         number
-  taxTotal:      number
-  grandTotal:    number
-  amountDue:     number
-  status:        TxnStatus
-  paymentId?:    number
+  id:             number
+  soId:           number
+  so:             any
+  invoiceDate:    string
+  dueDate:        string
+  amount:         number
+  paymentStatus:  PaymentStatus
+  payments:       Payment[]
+  // computed helpers
+  customerId:     number
+  customerName:   string
+  lines:          OrderLine[]
+  total:          number
+  taxTotal:       number
+  grandTotal:     number
+  amountDue:      number
+  status:         string
+  paymentId?:     number
 }
 
 /* ── Payment ─────────────────────────────────────────────────── */
 export interface Payment {
-  id:            number
-  type:          'inbound' | 'outbound'
-  method:        PaymentMethod
-  amount:        number
-  date:          string
-  reference:     string
-  invoiceId?:    number
-  billId?:       number
-  journalEntryId: number
+  id:                number
+  direction:         PaymentDirection
+  journalId:         number
+  journal:           { id: number; name: string; type: string } | null
+  amount:            number
+  date:              string
+  vendorBillId:      number | null
+  customerInvoiceId: number | null
+  journalEntryId:    number | null
+}
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+function normPO(raw: any): PurchaseOrder {
+  const lines: OrderLine[] = (raw.items ?? []).map((i: any) => ({
+    productId:   i.productId,
+    productName: i.product?.name ?? '',
+    quantity:    Number(i.quantity),
+    unitPrice:   Number(i.unitPrice),
+    tax:         0,
+    subtotal:    Number(i.quantity) * Number(i.unitPrice),
+  }))
+  return {
+    ...raw,
+    vendorName: raw.vendor?.name ?? '',
+    date:       raw.poDate?.slice(0, 10) ?? '',
+    lines,
+    total:      lines.reduce((s, l) => s + l.subtotal, 0),
+    billId:     raw.bill?.id ?? undefined,
+  }
+}
+
+function normBill(raw: any): VendorBill {
+  const vendor  = raw.po?.vendor
+  const items   = raw.po?.items ?? []
+  const lines: OrderLine[] = items.map((i: any) => ({
+    productId:   i.productId,
+    productName: i.product?.name ?? '',
+    quantity:    Number(i.quantity),
+    unitPrice:   Number(i.unitPrice),
+    tax:         0,
+    subtotal:    Number(i.quantity) * Number(i.unitPrice),
+  }))
+  const total      = Number(raw.amount)
+  const totalPaid  = (raw.payments ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0)
+  return {
+    ...raw,
+    vendorName:  vendor?.name ?? '',
+    invoiceDate: raw.billDate?.slice(0, 10) ?? '',
+    dueDate:     raw.dueDate?.slice(0, 10) ?? '',
+    lines,
+    total,
+    amountDue:   raw.paymentStatus === 'PAID' ? 0 : total - totalPaid,
+    status:      raw.paymentStatus === 'PAID' ? 'done' : raw.paymentStatus === 'PARTIAL' ? 'confirmed' : 'draft',
+    paymentId:   raw.payments?.[0]?.id,
+  }
+}
+
+function normSO(raw: any): SalesOrder {
+  const lines: OrderLine[] = (raw.items ?? []).map((i: any) => ({
+    productId:   i.productId,
+    productName: i.product?.name ?? '',
+    quantity:    Number(i.quantity),
+    unitPrice:   Number(i.unitPrice),
+    tax:         Number(i.taxRate ?? 0),
+    subtotal:    Number(i.quantity) * Number(i.unitPrice),
+  }))
+  const subTotal   = lines.reduce((s, l) => s + l.subtotal, 0)
+  const taxTotal   = lines.reduce((s, l) => s + l.subtotal * l.tax / 100, 0)
+  return {
+    ...raw,
+    customerName: raw.customer?.name ?? '',
+    date:         raw.soDate?.slice(0, 10) ?? '',
+    lines,
+    total:        subTotal,
+    taxTotal,
+    grandTotal:   subTotal + taxTotal,
+    invoiceId:    raw.invoice?.id ?? undefined,
+  }
+}
+
+function normInvoice(raw: any): CustomerInvoice {
+  const customer = raw.so?.customer
+  const items    = raw.so?.items ?? []
+  const lines: OrderLine[] = items.map((i: any) => ({
+    productId:   i.productId,
+    productName: i.product?.name ?? '',
+    quantity:    Number(i.quantity),
+    unitPrice:   Number(i.unitPrice),
+    tax:         Number(i.taxRate ?? 0),
+    subtotal:    Number(i.quantity) * Number(i.unitPrice),
+  }))
+  const subTotal  = lines.reduce((s, l) => s + l.subtotal, 0)
+  const taxTotal  = lines.reduce((s, l) => s + l.subtotal * l.tax / 100, 0)
+  const total     = Number(raw.amount)
+  const totalPaid = (raw.payments ?? []).reduce((s: number, p: any) => s + Number(p.amount), 0)
+  return {
+    ...raw,
+    customerId:   customer?.id ?? 0,
+    customerName: customer?.name ?? '',
+    lines,
+    total:        subTotal,
+    taxTotal,
+    grandTotal:   total,
+    amountDue:    raw.paymentStatus === 'PAID' ? 0 : total - totalPaid,
+    status:       raw.paymentStatus === 'PAID' ? 'done' : raw.paymentStatus === 'PARTIAL' ? 'confirmed' : 'draft',
+    paymentId:    raw.payments?.[0]?.id,
+    invoiceDate:  raw.invoiceDate?.slice(0, 10) ?? '',
+    dueDate:      raw.dueDate?.slice(0, 10) ?? '',
+  }
 }
 
 /* ── Store ───────────────────────────────────────────────────── */
 interface TransactionState {
-  purchaseOrders:    PurchaseOrder[]
-  vendorBills:       VendorBill[]
-  salesOrders:       SalesOrder[]
-  customerInvoices:  CustomerInvoice[]
-  payments:          Payment[]
-  loading:           boolean
-  error:             string | null
+  purchaseOrders:   PurchaseOrder[]
+  vendorBills:      VendorBill[]
+  salesOrders:      SalesOrder[]
+  customerInvoices: CustomerInvoice[]
+  payments:         Payment[]
+  loading:          boolean
+  error:            string | null
 
-  /* Purchase */
-  fetchPurchaseOrders: () => Promise<void>
-  createPurchaseOrder: (payload: Omit<PurchaseOrder,'id'|'status'|'billId'>) => Promise<PurchaseOrder | null>
-  convertToBill:       (poId: number) => Promise<VendorBill | null>
+  fetchPurchaseOrders:  () => Promise<void>
+  createPurchaseOrder:  (payload: { vendorId: number; poDate?: string; items: { productId: number; quantity: number; unitPrice: number; analyticAccountId?: number }[] }) => Promise<PurchaseOrder | null>
+  confirmPurchaseOrder: (id: number) => Promise<boolean>
+  createBillFromPO:     (poId: number) => Promise<VendorBill | null>
 
-  /* Vendor Bill */
-  fetchVendorBills:  () => Promise<void>
-  payBill:           (billId: number, method: PaymentMethod) => Promise<Payment | null>
+  fetchVendorBills: () => Promise<void>
+  payBill:          (billId: number, payload: { journalId: number; amount: number; date?: string }) => Promise<boolean>
 
-  /* Sales */
   fetchSalesOrders:  () => Promise<void>
-  createSalesOrder:  (payload: Omit<SalesOrder,'id'|'status'|'invoiceId'|'taxTotal'|'grandTotal'>) => Promise<SalesOrder | null>
+  createSalesOrder:  (payload: { customerId: number; soDate?: string; items: { productId: number; quantity: number; unitPrice: number; taxRate?: number; analyticAccountId?: number }[] }) => Promise<SalesOrder | null>
+  confirmSalesOrder: (id: number) => Promise<boolean>
   createInvoice:     (soId: number) => Promise<CustomerInvoice | null>
 
-  /* Customer Invoice */
-  fetchInvoices:     () => Promise<void>
-  payInvoice:        (invoiceId: number, method: PaymentMethod) => Promise<Payment | null>
+  fetchInvoices:  () => Promise<void>
+  payInvoice:     (invoiceId: number, payload: { journalId: number; amount: number; date?: string }) => Promise<boolean>
 
-  /* Payments */
-  fetchPayments:     (params?: { from?: string; to?: string }) => Promise<void>
+  fetchPayments:  (params?: { from?: string; to?: string }) => Promise<void>
 
   clearError: () => void
 }
@@ -131,113 +254,134 @@ export const useTransactionStore = create<TransactionState>((set) => ({
   /* ── Purchase Orders ──────────────────────────────────────── */
   fetchPurchaseOrders: async () => {
     set({ loading: true, error: null })
-    const [data, err] = await request<PurchaseOrder[]>(() => api.get('/purchase-orders'))
+    const [data, err] = await request<any[]>(() => api.get('/purchase-orders'))
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ purchaseOrders: data!, loading: false })
+    set({ purchaseOrders: (data ?? []).map(normPO), loading: false })
   },
 
   createPurchaseOrder: async (payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<PurchaseOrder>(() => api.post('/purchase-orders', payload))
-    if (err) { set({ error: err.message, loading: false }); return null }
-    set(s => ({ purchaseOrders: [data!, ...s.purchaseOrders], loading: false }))
-    return data!
-  },
-
-  convertToBill: async (poId) => {
-    set({ loading: true, error: null })
-    const [data, err] = await request<VendorBill>(() =>
-      api.post(`/purchase-orders/${poId}/convert-to-bill`)
+    const [data, err] = await request<{ order: any }>(() =>
+      api.post('/purchase-orders', payload)
     )
     if (err) { set({ error: err.message, loading: false }); return null }
+    const po = normPO(data!.order)
+    set(s => ({ purchaseOrders: [po, ...s.purchaseOrders], loading: false }))
+    return po
+  },
+
+  confirmPurchaseOrder: async (id) => {
+    const [data, err] = await request<{ order: any }>(() =>
+      api.patch(`/purchase-orders/${id}/confirm`)
+    )
+    if (err) { set({ error: err.message }); return false }
+    const po = normPO(data!.order)
+    set(s => ({ purchaseOrders: s.purchaseOrders.map(p => p.id === id ? po : p) }))
+    return true
+  },
+
+  createBillFromPO: async (poId) => {
+    set({ loading: true, error: null })
+    const [data, err] = await request<{ bill: any }>(() =>
+      api.post(`/purchase-orders/${poId}/create-bill`)
+    )
+    if (err) { set({ error: err.message, loading: false }); return null }
+    const bill = normBill(data!.bill)
     set(s => ({
-      vendorBills: [data!, ...s.vendorBills],
+      vendorBills:    [bill, ...s.vendorBills],
       purchaseOrders: s.purchaseOrders.map(po =>
-        po.id === poId ? { ...po, billId: data!.id, status: 'done' as TxnStatus } : po
+        po.id === poId ? { ...po, billId: bill.id, status: 'DONE' as DocStatus } : po
       ),
       loading: false,
     }))
-    return data!
+    return bill
   },
 
   /* ── Vendor Bills ─────────────────────────────────────────── */
   fetchVendorBills: async () => {
     set({ loading: true, error: null })
-    const [data, err] = await request<VendorBill[]>(() => api.get('/vendor-bills'))
+    const [data, err] = await request<any[]>(() => api.get('/vendor-bills'))
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ vendorBills: data!, loading: false })
+    set({ vendorBills: (data ?? []).map(normBill), loading: false })
   },
 
-  payBill: async (billId, method) => {
+  payBill: async (billId, payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<Payment>(() =>
-      api.post(`/vendor-bills/${billId}/pay`, { method })
+    const [, err] = await request(() =>
+      api.post(`/vendor-bills/${billId}/payments`, payload)
     )
-    if (err) { set({ error: err.message, loading: false }); return null }
-    set(s => ({
-      payments: [data!, ...s.payments],
-      vendorBills: s.vendorBills.map(b =>
-        b.id === billId ? { ...b, paymentId: data!.id, status: 'done' as TxnStatus, amountDue: 0 } : b
-      ),
-      loading: false,
-    }))
-    return data!
+    if (err) { set({ error: err.message, loading: false }); return false }
+    // Re-fetch to get updated status
+    const [data2] = await request<any[]>(() => api.get('/vendor-bills'))
+    if (data2) set({ vendorBills: data2.map(normBill) })
+    set({ loading: false })
+    return true
   },
 
   /* ── Sales Orders ─────────────────────────────────────────── */
   fetchSalesOrders: async () => {
     set({ loading: true, error: null })
-    const [data, err] = await request<SalesOrder[]>(() => api.get('/sales-orders'))
+    const [data, err] = await request<any[]>(() => api.get('/sales-orders'))
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ salesOrders: data!, loading: false })
+    set({ salesOrders: (data ?? []).map(normSO), loading: false })
   },
 
   createSalesOrder: async (payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<SalesOrder>(() => api.post('/sales-orders', payload))
+    const [data, err] = await request<{ order: any }>(() =>
+      api.post('/sales-orders', payload)
+    )
     if (err) { set({ error: err.message, loading: false }); return null }
-    set(s => ({ salesOrders: [data!, ...s.salesOrders], loading: false }))
-    return data!
+    const so = normSO(data!.order)
+    set(s => ({ salesOrders: [so, ...s.salesOrders], loading: false }))
+    return so
+  },
+
+  confirmSalesOrder: async (id) => {
+    const [data, err] = await request<{ order: any }>(() =>
+      api.patch(`/sales-orders/${id}/confirm`)
+    )
+    if (err) { set({ error: err.message }); return false }
+    const so = normSO(data!.order)
+    set(s => ({ salesOrders: s.salesOrders.map(o => o.id === id ? so : o) }))
+    return true
   },
 
   createInvoice: async (soId) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<CustomerInvoice>(() =>
+    const [data, err] = await request<{ invoice: any }>(() =>
       api.post(`/sales-orders/${soId}/create-invoice`)
     )
     if (err) { set({ error: err.message, loading: false }); return null }
+    const inv = normInvoice(data!.invoice)
     set(s => ({
-      customerInvoices: [data!, ...s.customerInvoices],
-      salesOrders: s.salesOrders.map(so =>
-        so.id === soId ? { ...so, invoiceId: data!.id, status: 'done' as TxnStatus } : so
+      customerInvoices: [inv, ...s.customerInvoices],
+      salesOrders:      s.salesOrders.map(so =>
+        so.id === soId ? { ...so, invoiceId: inv.id, status: 'DONE' as DocStatus } : so
       ),
       loading: false,
     }))
-    return data!
+    return inv
   },
 
   /* ── Customer Invoices ────────────────────────────────────── */
   fetchInvoices: async () => {
     set({ loading: true, error: null })
-    const [data, err] = await request<CustomerInvoice[]>(() => api.get('/invoices'))
+    const [data, err] = await request<any[]>(() => api.get('/customer-invoices'))
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ customerInvoices: data!, loading: false })
+    set({ customerInvoices: (data ?? []).map(normInvoice), loading: false })
   },
 
-  payInvoice: async (invoiceId, method) => {
+  payInvoice: async (invoiceId, payload) => {
     set({ loading: true, error: null })
-    const [data, err] = await request<Payment>(() =>
-      api.post(`/invoices/${invoiceId}/pay`, { method })
+    const [, err] = await request(() =>
+      api.post(`/customer-invoices/${invoiceId}/payments`, payload)
     )
-    if (err) { set({ error: err.message, loading: false }); return null }
-    set(s => ({
-      payments: [data!, ...s.payments],
-      customerInvoices: s.customerInvoices.map(inv =>
-        inv.id === invoiceId ? { ...inv, paymentId: data!.id, status: 'done' as TxnStatus, amountDue: 0 } : inv
-      ),
-      loading: false,
-    }))
-    return data!
+    if (err) { set({ error: err.message, loading: false }); return false }
+    const [data2] = await request<any[]>(() => api.get('/customer-invoices'))
+    if (data2) set({ customerInvoices: data2.map(normInvoice) })
+    set({ loading: false })
+    return true
   },
 
   /* ── Payments ─────────────────────────────────────────────── */
@@ -247,7 +391,7 @@ export const useTransactionStore = create<TransactionState>((set) => ({
       api.get('/payments', { params })
     )
     if (err) { set({ error: err.message, loading: false }); return }
-    set({ payments: data!, loading: false })
+    set({ payments: data ?? [], loading: false })
   },
 
   clearError: () => set({ error: null }),

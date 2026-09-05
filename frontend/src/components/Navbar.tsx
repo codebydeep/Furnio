@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 const navLinks = [
   { label: 'Home',        id: 'home'    },
-  { label: 'Actors',      id: 'actors'  },
+  { label: 'Actors',      id: 'actors'  },  
   { label: 'Features',    id: 'features'},
   { label: 'Workflow',    id: 'workflow' },
   { label: 'System',      id: 'system'  },
