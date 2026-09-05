@@ -201,6 +201,59 @@ export async function updateUser(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// PATCH /api/auth/users/:id/role  — change a user's role (ADMIN only)
+// Body: { role }
+// Rules:
+//   - Cannot change your own role (prevent self-lockout)
+//   - Changing TO CONTACT requires a contactId on the user
+//   - Changing FROM CONTACT clears contactId
+// ---------------------------------------------------------------------------
+export async function changeRole(req, res) {
+  try {
+    const { id } = req.params
+    const { role } = req.body
+
+    // Prevent self role-change
+    if (id === req.user.id) {
+      return res.status(403).json({ message: 'You cannot change your own role.' })
+    }
+
+    const existing = await prisma.user.findUnique({ where: { id } })
+    if (!existing) {
+      return res.status(404).json({ message: 'User not found.' })
+    }
+
+    if (existing.role === role) {
+      return res.status(400).json({ message: `User already has the role: ${role}.` })
+    }
+
+    // Changing TO CONTACT requires contactId to be set on the user
+    if (role === 'CONTACT' && !existing.contactId) {
+      return res.status(400).json({
+        message: 'Cannot assign CONTACT role — user has no linked contactId. Update the user with a contactId first.',
+      })
+    }
+
+    const data = { role }
+
+    // Changing FROM CONTACT → clear contactId
+    if (existing.role === 'CONTACT' && role !== 'CONTACT') {
+      data.contactId = null
+    }
+
+    const updated = await prisma.user.update({ where: { id }, data })
+
+    return res.status(200).json({
+      message: `Role updated to ${role} successfully.`,
+      user: sanitize(updated),
+    })
+  } catch (err) {
+    console.error('[changeRole]', err)
+    return res.status(500).json({ message: 'Internal server error.' })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // DELETE /api/auth/users/:id  — delete user (ADMIN only)
 // ---------------------------------------------------------------------------
 export async function deleteUser(req, res) {

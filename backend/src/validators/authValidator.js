@@ -1,12 +1,11 @@
 import { z } from 'zod'
 
 export const registerSchema = z.object({
-  // Email: duplicate check happens in the controller against DB
   email: z
     .string({ required_error: 'Email is required.' })
     .email('Invalid email address.'),
 
-  // Password: more than 8 chars, must have lowercase, uppercase, and special character
+  
   password: z
     .string({ required_error: 'Password is required.' })
     .min(9, 'Password must be more than 8 characters.')
@@ -31,10 +30,13 @@ export const loginSchema = z.object({
     .min(1, 'Password is required.'),
 })
 
-/**
- * Generic Zod validation middleware factory.
- * Usage: router.post('/register', validate(registerSchema), handler)
- */
+export const changeRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'ACCOUNTANT', 'CONTACT'], {
+    required_error: 'Role is required.',
+    invalid_type_error: 'Role must be ADMIN, ACCOUNTANT, or CONTACT.',
+  }),
+})
+
 export function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body)

@@ -7,10 +7,12 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  changeRole,
 } from '../controllers/authController.js'
 import { authenticate } from '../middleware/authenticate.js'
 import { authorize } from '../middleware/authorize.js'
-import { registerSchema, loginSchema, validate } from '../validators/authValidator.js'
+import { CAN_MANAGE_USERS } from '../config/roles.js'
+import { registerSchema, loginSchema, changeRoleSchema, validate } from '../validators/authValidator.js'
 
 const router = Router()
 
@@ -18,13 +20,14 @@ const router = Router()
 router.post('/register', validate(registerSchema), register)
 router.post('/login',    validate(loginSchema),    login)
 
-// ---------- Authenticated ----------
+// ---------- Any authenticated user ----------
 router.get('/me', authenticate, me)
 
-// ---------- Admin only — user management ----------
-router.get('/users',      authenticate, authorize('ADMIN'), getAllUsers)
-router.get('/users/:id',  authenticate, authorize('ADMIN'), getUserById)
-router.patch('/users/:id',authenticate, authorize('ADMIN'), updateUser)
-router.delete('/users/:id',authenticate, authorize('ADMIN'), deleteUser)
+// ---------- ADMIN only — user management ----------
+router.get   ('/users',            authenticate, authorize(...CAN_MANAGE_USERS), getAllUsers)
+router.get   ('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), getUserById)
+router.patch ('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), updateUser)
+router.patch ('/users/:id/role',   authenticate, authorize(...CAN_MANAGE_USERS), validate(changeRoleSchema), changeRole)
+router.delete('/users/:id',        authenticate, authorize(...CAN_MANAGE_USERS), deleteUser)
 
 export default router
