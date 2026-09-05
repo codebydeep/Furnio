@@ -1,4 +1,5 @@
-import 'dotenv/config'
+cls
+git statusimport 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import prisma from './db/prisma.js'
