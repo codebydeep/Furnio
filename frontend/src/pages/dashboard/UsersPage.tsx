@@ -24,9 +24,9 @@ interface User {
 }
 
 const ROLE_BADGE: Record<string, string> = {
-  ADMIN:      'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  ACCOUNTANT: 'bg-blue-500/15   text-blue-400   border-blue-500/30',
-  USER:       'bg-green-500/15  text-green-400  border-green-500/30',
+  ADMIN:      'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
+  ACCOUNTANT: 'bg-blue-500/15   text-blue-600   dark:text-blue-400   border-blue-500/30',
+  USER:       'bg-green-500/15  text-green-600  dark:text-green-400  border-green-500/30',
 }
 
 const ROLES = ['ADMIN', 'ACCOUNTANT', 'USER'] as const

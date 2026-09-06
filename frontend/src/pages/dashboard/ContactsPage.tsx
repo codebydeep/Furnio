@@ -13,9 +13,9 @@ import {
 import { useContactStore, type Contact, type ContactPayload, type ContactType } from '@/store'
 
 const TYPE_BADGE: Record<ContactType, string> = {
-  CUSTOMER: 'bg-blue-500/15  text-blue-400  border-blue-500/30',
-  VENDOR:   'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  BOTH:     'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  CUSTOMER: 'bg-blue-500/15  text-blue-600 dark:text-blue-400  border-blue-500/30',
+  VENDOR:   'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+  BOTH:     'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
 }
 
 const EMPTY: ContactPayload = {

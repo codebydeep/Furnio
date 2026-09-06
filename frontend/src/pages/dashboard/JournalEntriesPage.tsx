@@ -20,9 +20,9 @@ function fmt(n: number) {
 }
 
 const STATUS_STYLE: Record<JournalEntryStatus, string> = {
-  DRAFT:     'bg-zinc-500/10  text-zinc-400  border-zinc-500/20',
-  POSTED:    'bg-green-500/10 text-green-400 border-green-500/20',
-  CANCELLED: 'bg-red-500/10   text-red-400   border-red-500/20',
+  DRAFT:     'bg-zinc-500/10  text-zinc-600  dark:text-zinc-400  border-zinc-500/20',
+  POSTED:    'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+  CANCELLED: 'bg-red-500/10   text-red-600   dark:text-red-400   border-red-500/20',
 }
 const STATUS_ICON: Record<JournalEntryStatus, React.ElementType> = {
   DRAFT:     Clock,

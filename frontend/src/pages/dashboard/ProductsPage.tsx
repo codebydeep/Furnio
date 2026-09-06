@@ -12,9 +12,9 @@ import {
 import { useProductStore, type Product, type ProductPayload, type ProductType } from '@/store'
 
 const TYPE_BADGE: Record<ProductType, string> = {
-  GOODS:   'bg-green-500/15  text-green-400  border-green-500/30',
-  SERVICE: 'bg-blue-500/15   text-blue-400   border-blue-500/30',
-  COMBO:   'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  GOODS:   'bg-green-500/15  text-green-600 dark:text-green-400  border-green-500/30',
+  SERVICE: 'bg-blue-500/15   text-blue-600  dark:text-blue-400   border-blue-500/30',
+  COMBO:   'bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30',
 }
 
 const EMPTY: ProductPayload = {

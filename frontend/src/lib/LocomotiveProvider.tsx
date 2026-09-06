@@ -72,6 +72,16 @@ export default function LocomotiveProvider({ children }: { children: ReactNode }
         ScrollTrigger.refresh()
       })
 
+      // Dynamically observe container resizing so scrollTo target positions are always accurate
+      let ro: ResizeObserver | null = null
+      if (typeof ResizeObserver !== 'undefined' && el) {
+        ro = new ResizeObserver(() => {
+          ls.update()
+          ScrollTrigger.refresh()
+        })
+        ro.observe(el)
+      }
+
       ScrollTrigger.refresh()
       setScroll(ls)
       // Store on window for Navbar scrollTo calls

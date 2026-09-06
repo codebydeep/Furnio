@@ -197,43 +197,43 @@ export default function DashboardHome() {
           {/* ═════════════════════════════════════════════════════
               SCREENSHOT 5: MASTER DATA GUIDANCE & QUICK LINKS
           ═════════════════════════════════════════════════════ */}
-          <div className="wf-panel border-amber-500/20 bg-[#16171b]">
+          <div className="wf-panel border-amber-500/20">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold tracking-wide uppercase">
+                <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-300 text-xs font-bold tracking-wide uppercase">
                   Master Data
                 </span>
-                <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                <span className="text-xs text-[var(--text-muted)] font-medium hidden sm:inline">
                   Workflow standard: List view default → Click record to edit details or +New for blank form.
                 </span>
               </div>
             </div>
-            <p className="text-xs text-slate-300 italic mb-4">
+            <p className="text-xs text-[var(--text-muted)] italic mb-4">
               "All Master will have list view as default and clicking on New button it will open blank form view to enter new record, Clicking on already saved record - it will open form view with saved details."
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-              <Link to="/master/contacts" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <Users size={13} className="text-blue-400" />
+              <Link to="/master/contacts" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <Users size={13} className="text-blue-500 dark:text-blue-400" />
                 <span>Contact</span>
               </Link>
-              <Link to="/master/products" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <FileSpreadsheet size={13} className="text-emerald-400" />
+              <Link to="/master/products" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <FileSpreadsheet size={13} className="text-emerald-500 dark:text-emerald-400" />
                 <span>Product</span>
               </Link>
-              <Link to="/master/analytic-accounts" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <Activity size={13} className="text-purple-400" />
+              <Link to="/master/analytic-accounts" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <Activity size={13} className="text-purple-500 dark:text-purple-400" />
                 <span>Analyticals</span>
               </Link>
-              <Link to="/master/budget" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <PieChart size={13} className="text-pink-400" />
+              <Link to="/master/budget" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <PieChart size={13} className="text-pink-500 dark:text-pink-400" />
                 <span>Analytical Budget</span>
               </Link>
-              <Link to="/master/coa" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <Database size={13} className="text-amber-400" />
+              <Link to="/master/coa" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <Database size={13} className="text-amber-500 dark:text-amber-400" />
                 <span>Chart of Account</span>
               </Link>
-              <Link to="/master/journals" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1f27] hover:bg-[#232733] border border-white/10 text-xs text-slate-200 transition-colors">
-                <BookOpen size={13} className="text-cyan-400" />
+              <Link to="/master/journals" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border-subtle)] text-xs text-[var(--text)] transition-colors">
+                <BookOpen size={13} className="text-cyan-500 dark:text-cyan-400" />
                 <span>Journals</span>
               </Link>
             </div>
@@ -265,11 +265,11 @@ export default function DashboardHome() {
 
           {/* ── Recent Invoices ───────────────────────────────── */}
           {invoices.length > 0 && (
-            <Card className="border border-white/10 bg-[#12151b]">
+            <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-200">Recent Customer Invoices</CardTitle>
-                  <Link to="/transactions/invoice" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                  <CardTitle className="text-sm font-semibold">Recent Customer Invoices</CardTitle>
+                  <Link to="/transactions/invoice" className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1">
                     View all <ArrowUpRight size={12} />
                   </Link>
                 </div>
@@ -277,34 +277,34 @@ export default function DashboardHome() {
               <CardContent className="px-0 pb-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-white/10">
-                      <TableHead className="pl-5 text-slate-400">#</TableHead>
-                      <TableHead className="text-slate-400">Customer</TableHead>
-                      <TableHead className="text-slate-400">Date</TableHead>
-                      <TableHead className="text-right text-slate-400">Amount</TableHead>
+                    <TableRow>
+                      <TableHead className="pl-5">#</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="pr-5" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {invoices.map(inv => (
-                      <TableRow key={inv.id} className="border-white/5 hover:bg-white/5">
-                        <TableCell className="pl-5 font-mono text-xs font-semibold text-blue-400">INV-{String(inv.id).padStart(4, '0')}</TableCell>
+                      <TableRow key={inv.id}>
+                        <TableCell className="pl-5 font-mono text-xs font-semibold text-blue-500 dark:text-blue-400">INV-{String(inv.id).padStart(4, '0')}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-[10px] bg-slate-700 text-slate-200">{inv.so?.customer?.name?.[0] ?? '?'}</AvatarFallback>
+                              <AvatarFallback className="text-[10px]">{inv.so?.customer?.name?.[0] ?? '?'}</AvatarFallback>
                             </Avatar>
-                            <span className="text-sm text-slate-200">{inv.so?.customer?.name ?? '—'}</span>
+                            <span className="text-sm font-medium text-[var(--text)]">{inv.so?.customer?.name ?? '—'}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-slate-400">
+                        <TableCell className="text-xs text-[var(--text-muted)]">
                           {new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums font-semibold text-slate-200">
+                        <TableCell className="text-right font-mono tabular-nums font-semibold text-[var(--text)]">
                           ₹{Number(inv.amount).toLocaleString('en-IN')}
                         </TableCell>
                         <TableCell className="pr-5 text-right">
-                          <Link to="/transactions/invoice" className="text-xs text-blue-400 hover:underline">View</Link>
+                          <Link to="/transactions/invoice" className="text-xs text-[var(--accent)] hover:underline">View</Link>
                         </TableCell>
                       </TableRow>
                     ))}

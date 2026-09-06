@@ -12,8 +12,8 @@ import {
 import { useBudgetStore, type AnalyticAccount, type AnalyticType } from '@/store'
 
 const TYPE_BADGE: Record<AnalyticType, string> = {
-  INCOME:  'bg-green-500/15 text-green-400 border-green-500/30',
-  EXPENSE: 'bg-red-500/15   text-red-400   border-red-500/30',
+  INCOME:  'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30',
+  EXPENSE: 'bg-red-500/15   text-red-600   dark:text-red-400   border-red-500/30',
 }
 
 const EMPTY = { name: '', type: 'INCOME' as AnalyticType }

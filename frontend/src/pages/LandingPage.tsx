@@ -1,57 +1,30 @@
-import LocomotiveProvider   from '@/lib/LocomotiveProvider'
-import Navbar               from '@/components/Navbar'
-import HeroSection          from '@/components/HeroSection'
-import LogosStrip           from '@/components/LogosStrip'
-import FeaturesSection      from '@/components/FeaturesSection'
-import AboutSection         from '@/components/AboutSection'
-import TransactionFlowSection from '@/components/TransactionFlowSection'
-import SystemEngineSection  from '@/components/SystemEngineSection'
-import FooterSection        from '@/components/FooterSection'
+import Navbar          from '@/components/Navbar'
+import HeroSection    from '@/components/HeroSection'
+import FeaturesSection from '@/components/FeaturesSection'
+import Footer         from '@/components/Footer'
 
 export default function LandingPage() {
   return (
-    <LocomotiveProvider>
-      {/*
-        Navbar is position:fixed z-index:1000 — it lives inside the
-        scroll container but is NOT inside a data-scroll-section,
-        so Locomotive's translate transform never moves it.
-      */}
+    <div className="landing-root min-h-screen flex flex-col bg-[var(--lp-bg)] text-[var(--lp-text)] transition-colors duration-300">
+      {/* Fixed Navbar at the top */}
       <Navbar />
 
-      {/* Hero */}
-      <section data-scroll-section>
-        <HeroSection />
-      </section>
+      <main className="flex-1">
+        {/* 1. Home UI Page */}
+        <section id="home">
+          <HeroSection />
+        </section>
 
-      {/* Trusted-by logos */}
-      <section data-scroll-section>
-        <LogosStrip />
-      </section>
+        {/* 2. Features Section (Directly below Home when scrolling) */}
+        <section id="features" className="scroll-mt-20">
+          <FeaturesSection />
+        </section>
+      </main>
 
-      {/* Features — Invoice, Payslip, Reports … */}
-      <section data-scroll-section>
-        <FeaturesSection />
-      </section>
-
-      {/* About FurNio */}
-      <section data-scroll-section>
-        <AboutSection />
-      </section>
-
-      {/* Transaction workflow */}
-      <section data-scroll-section id="workflow">
-        <TransactionFlowSection />
-      </section>
-
-      {/* System / accounting engine */}
-      <section data-scroll-section id="system">
-        <SystemEngineSection />
-      </section>
-
-      {/* Footer */}
-      <section data-scroll-section id="blog">
-        <FooterSection />
-      </section>
-    </LocomotiveProvider>
+      {/* 3. Footer (Directly below Features when scrolling) */}
+      <div id="footer" className="scroll-mt-20">
+        <Footer />
+      </div>
+    </div>
   )
 }

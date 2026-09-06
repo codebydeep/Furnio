@@ -13,15 +13,11 @@ export function useScrollLink(sectionId: string) {
     e.preventDefault()
 
     const scroll = () => {
-      const ls = (window as any).__locomotiveScroll
-      if (ls) {
-        // Locomotive smooth scroll to the section element
-        const el = document.getElementById(sectionId)
-        if (el) ls.scrollTo(el, { offset: -80, duration: 1.2 })
-      } else {
-        // Fallback: native smooth scroll
-        const el = document.getElementById(sectionId)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const el = document.getElementById(sectionId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else if (sectionId === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
 
