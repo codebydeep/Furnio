@@ -1,40 +1,31 @@
-# ── Stage 1: deps ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:20-bookworm-slim AS dependencies
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --omit=dev
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
-# ── Stage 2: build (generate Prisma client) ───────────────────────────────────
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
+FROM dependencies AS builder
 COPY prisma ./prisma
 RUN npx prisma generate
-
+COPY prisma.config.ts ./
 COPY src ./src
 
-# ── Stage 3: runner ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
 
-# Copy production node_modules
-COPY --from=deps /app/node_modules ./node_modules
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy generated Prisma client
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/src/generated ./src/generated
-
-# Copy app source and prisma schema
-COPY src ./src
-COPY prisma ./prisma
-COPY package.json ./
+COPY --from=builder /app/src ./src
 
 EXPOSE 3000
-
 CMD ["node", "src/index.js"]

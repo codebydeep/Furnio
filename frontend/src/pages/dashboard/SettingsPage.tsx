@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { api } from '@/lib/api'
+import { getAvatarInitial } from '@/lib/avatar'
 import { useAuthStore } from '@/store'
 
 const ROLE_BADGE: Record<string, string> = {
@@ -62,7 +63,7 @@ export default function SettingsPage() {
 
   if (!user) return null
 
-  const initials = user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+  const avatarInitial = getAvatarInitial(user.name)
 
   return (
     <div className="db-page max-w-2xl">
@@ -84,7 +85,7 @@ export default function SettingsPage() {
           {/* Avatar + role banner */}
           <div className="flex items-center gap-4 mb-5 p-3 rounded-xl bg-[var(--surface-2)]">
             <Avatar className="h-12 w-12">
-              <AvatarFallback className="text-base">{initials}</AvatarFallback>
+              <AvatarFallback className="text-base" aria-label={`${user.name} avatar`}>{avatarInitial}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-semibold text-[var(--text)]">{user.name}</p>

@@ -8,11 +8,12 @@ import {
   Activity, BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import ThemeToggle from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
+import { getAvatarInitial } from '@/lib/avatar'
 import type { UserRole } from '@/store/useAuthStore'
 
 interface NavItem {
@@ -105,9 +106,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     items: g.items.filter(i => !i.roles || i.roles.includes(role as UserRole)),
   })).filter(g => g.items.length > 0)
 
-  const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
-    : 'U'
+  const avatarInitial = getAvatarInitial(user?.name)
 
   const roleBadge: Record<UserRole, string> = {
     ADMIN:      'Admin',
@@ -154,8 +153,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         {!collapsed && (
           <div className="db-user-row">
             <Avatar className="h-7 w-7">
-              <AvatarImage src={undefined} />
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback aria-label={`${user?.name ?? 'User'} avatar`}>{avatarInitial}</AvatarFallback>
             </Avatar>
             <div className="db-user-info">
               <span className="db-user-name">{user?.name}</span>
@@ -217,7 +215,7 @@ const TOP_CATEGORIES = [
 
 function Topbar({ onMobileMenu }: { onMobileMenu: () => void }) {
   const { user } = useAuthStore()
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U'
+  const avatarInitial = getAvatarInitial(user?.name)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
 
   return (
@@ -270,8 +268,7 @@ function Topbar({ onMobileMenu }: { onMobileMenu: () => void }) {
           <span className="db-notif-dot" />
         </button>
         <Avatar className="h-8 w-8 cursor-pointer">
-          <AvatarImage src={undefined} />
-          <AvatarFallback>{initials}</AvatarFallback>
+          <AvatarFallback aria-label={`${user?.name ?? 'User'} avatar`}>{avatarInitial}</AvatarFallback>
         </Avatar>
       </div>
     </header>

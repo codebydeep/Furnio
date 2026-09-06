@@ -7,5 +7,4 @@ dist
 .git
 .gitignore
 *.md
-prisma/migrations
 src/generated
